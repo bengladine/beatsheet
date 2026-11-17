@@ -1,0 +1,26 @@
+MIDI.js/js/MIDI/MIDI.JS.min.js
+js/groove_display.min.js
+js/groove_writer.min.js
+Lesson.css
+cordova/platforms/
+mikeLessons.html
+cordova/plugins/
+.idea/
+node_modules/
+
+# Test / tooling artifacts
+coverage/
+.vitest/
+
+# Playwright (keep the committed *-snapshots/ baselines; ignore run artifacts)
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# Capacitor / mobile build. www/ is assembled from source by scripts/build-www.mjs;
+# the native projects are generated fresh in CI (npx cap add), so none are committed.
+www/
+/android/
+/ios/
+.gradle/

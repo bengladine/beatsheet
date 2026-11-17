@@ -1,0 +1,678 @@
+/* Ben: modern skin for the editor. Loaded last; layout sizes (48px bars, 72px nav) stay the same.
+   Note cells are NOT restyled: the editor reads note state back from their colors. */
+:root {
+  --ben-bg: #f3f4f6;
+  --ben-surface: #ffffff;
+  --ben-ink: #111827;
+  --ben-muted: #6b7280;
+  --ben-line: #e5e7eb;
+  --ben-chrome: #0f172a;
+  --ben-chrome-2: #1e293b;
+  --ben-chrome-hover: #334155;
+  --ben-accent: #f97316;
+  --ben-accent-soft: #fff7ed;
+  --ben-green: #16a34a;
+  --ben-radius: 12px;
+  --ben-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+body,
+#GrooveWriter {
+  background: var(--ben-bg);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--ben-ink);
+}
+
+/* ---- left nav ---- */
+#LeftHandNav {
+  background: var(--ben-chrome);
+  border-right: none;
+}
+#logoInSubdivision {
+  background: var(--ben-chrome) !important;
+}
+.left-button {
+  color: #94a3b8;
+}
+.left-button-content {
+  border-bottom: none;
+  margin: 3px 6px;
+  height: 46px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+#logoInSubdivision.left-button-content {
+  margin: 0;
+  border-radius: 0;
+  height: 48px;
+}
+.left-button.buttonSelected,
+.left-button.buttonSelected:hover {
+  background: var(--ben-accent);
+  color: #fff;
+  transform: none;
+}
+.myButton:hover,
+.left-button:hover {
+  background: var(--ben-chrome-hover);
+  color: #e2e8f0;
+  transform: none;
+}
+.left-button:active,
+.myButton:active {
+  background: var(--ben-chrome-2);
+}
+.left-button.disabled,
+.left-button.disabled:hover {
+  background: transparent;
+  color: #475569;
+}
+#timeSigLabel,
+#timeSubLabel {
+  color: #4ade80;
+}
+
+/* ---- top bar + player ---- */
+#TopNav {
+  background: var(--ben-chrome);
+  border-bottom: 1px solid var(--ben-chrome-2);
+  color: #cbd5e1;
+}
+#TopNav a,
+#TopNav .rightButtons {
+  color: #cbd5e1;
+}
+#midiPlayer {
+  background: var(--ben-chrome-2);
+  border-bottom: none;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+}
+#midiPlayer .playerControl {
+  background: var(--ben-chrome-2);
+}
+
+/* ---- content ---- */
+#RightHandContent {
+  background: var(--ben-bg);
+}
+#sheetMusicDiv {
+  background: transparent;
+  padding: 14px 16px 6px 16px;
+  box-sizing: border-box;
+}
+#sheetMusicDiv .svgTarget {
+  background: var(--ben-surface);
+  border-radius: var(--ben-radius);
+  box-shadow: var(--ben-shadow);
+  padding: 8px 0;
+}
+#sheetMusicTextFields {
+  background: transparent;
+  color: var(--ben-muted);
+  font-size: 13px;
+  padding: 6px 16px;
+  box-sizing: border-box;
+}
+#sheetMusicTextFields input {
+  border: 1px solid var(--ben-line);
+  border-radius: 8px;
+  padding: 5px 8px;
+  background: var(--ben-surface);
+  font: inherit;
+  color: var(--ben-ink);
+}
+#sheetMusicTextFields input:focus {
+  outline: none;
+  border-color: var(--ben-accent);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
+}
+#musicalInput,
+#musicalInput.expanded {
+  background: transparent;
+}
+#measureContainer {
+  gap: 12px;
+  padding: 6px 16px 16px 16px;
+}
+
+/* ---- bar cards ---- */
+.staff-container {
+  border: 1px solid var(--ben-line);
+  border-radius: var(--ben-radius);
+  box-shadow: var(--ben-shadow);
+  overflow: hidden;
+  padding-bottom: 6px;
+}
+.staff-container.ben-play-from {
+  border-color: var(--ben-green);
+  box-shadow: inset 4px 0 0 var(--ben-green), var(--ben-shadow);
+}
+.staff-container.ben-looped {
+  border-color: var(--ben-accent);
+  background: var(--ben-accent-soft);
+}
+.line-labels {
+  font-weight: 500;
+  color: #374151;
+}
+/* rows are spaced by the label line height: keep it at the original 24px */
+.line-labels .hh-label,
+.line-labels .snare-label,
+.line-labels .kick-label,
+.line-labels .stickings-label,
+#tom1-label,
+#tom2-label,
+#tom3-label,
+#tom4-label {
+  font-size: 14px;
+  line-height: 24px;
+}
+.line-labels .hh-label:hover,
+.line-labels .snare-label:hover,
+.line-labels .kick-label:hover {
+  color: var(--ben-accent);
+}
+.closeMeasureButton {
+  color: #cbd5e1 !important;
+}
+.closeMeasureButton:hover {
+  color: #ef4444 !important;
+}
+
+.ben-bar-controls {
+  gap: 6px 12px;
+  padding: 8px 10px 6px 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--ben-line);
+  font-size: 12px;
+  color: var(--ben-muted);
+}
+.ben-bar-controls .ben-bar-label {
+  font-weight: 700;
+  color: var(--ben-ink);
+  font-size: 13px;
+}
+.ben-bar-controls select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--ben-line);
+  border-radius: 7px;
+  background: var(--ben-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%236b7280'/%3E%3C/svg%3E")
+    no-repeat right 6px center;
+  padding: 3px 18px 3px 7px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ben-ink);
+  cursor: pointer;
+}
+.ben-bar-controls select:hover {
+  border-color: #cbd5e1;
+}
+.ben-bar-controls select:focus {
+  outline: none;
+  border-color: var(--ben-accent);
+}
+.ben-bar-controls .ben-tools {
+  gap: 2px;
+}
+.ben-bar-controls .ben-tools button {
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  padding: 4px 7px;
+  color: var(--ben-muted);
+}
+.ben-bar-controls .ben-tools button:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: var(--ben-ink);
+}
+.ben-bar-controls .ben-tools button.on {
+  background: var(--ben-ink);
+  color: #fff;
+}
+
+.ben-add-bar-menu {
+  border: 1px solid var(--ben-line);
+  border-radius: var(--ben-radius);
+  padding: 6px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+}
+.ben-add-bar-menu button {
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+}
+.ben-add-bar-menu button:hover {
+  background: #f1f5f9;
+}
+
+/* ---- bottom buttons ---- */
+#bottomButtonRow {
+  background: transparent;
+  color: var(--ben-muted);
+  padding: 8px 16px 24px 16px;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.pageBottomButton {
+  margin: 0;
+  padding: 10px 16px;
+  background: var(--ben-surface);
+  border: 1px solid var(--ben-line);
+  border-radius: 10px;
+  box-shadow: var(--ben-shadow);
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 84px;
+}
+.pageBottomButton:hover {
+  color: var(--ben-ink);
+  border-color: #cbd5e1;
+}
+
+/* ---- sheet cursor/loop: match accent ---- */
+.ben-sheet-loop {
+  background: rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.6);
+}
+.ben-sheet-handle::after,
+.ben-sheet-loop-off {
+  background: var(--ben-accent);
+}
+.ben-sheet-cursor,
+.ben-sheet-cursor::before {
+  background: var(--ben-green);
+}
+.ben-sheet-cursor::before {
+  background: none;
+  border-top-color: var(--ben-green);
+}
+
+/* ---- add bar ---- */
+#addMeasureButton {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 8px;
+  border-radius: 50%;
+  border: 2px dashed #cbd5e1;
+  color: var(--ben-muted) !important;
+  font-size: 18px !important;
+  background: transparent;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: all 0.12s ease;
+}
+#addMeasureButton:hover {
+  border-color: var(--ben-accent);
+  color: var(--ben-accent) !important;
+  background: var(--ben-accent-soft);
+}
+
+/* ---- ride row (view on the hi-hat lane) ---- */
+.ben-ride-container .hi-hat { cursor: pointer; }
+.hi-hat.ben-on-ride .note_part { visibility: hidden; }
+.ben-ride-on .ben-ride-label { margin-top: 16px; }
+.ben-ride-on .hh-label:not(.ben-ride-label) { margin-top: 18px; }
+.ben-ride-container { margin-bottom: 0; }
+#showHideRideButton.ClickToHide { color: var(--ben-accent); border-color: var(--ben-accent); }
+.hi-hat.ben-on-ride .hh_cross { visibility: visible; color: rgb(204, 204, 204) !important; }
+
+/* ---- no left nav: per-bar/per-beat controls replace it ---- */
+#LeftHandNav { display: none !important; }
+#TopNav { width: 100%; margin-left: 0; display: flex; align-items: center; gap: 4px; height: 52px; box-sizing: border-box; padding: 0 12px; }
+#midiPlayer { left: 0; width: 100%; top: 52px; }
+#RightHandContent { left: 0; width: 100%; top: 100px; height: calc(100% - 100px); }
+#GrooveWriter { min-width: 0; }
+#logoTextUpperLeft { padding: 0 8px 0 0; display: flex; align-items: center; }
+#upperLeft, #upperRight { margin-top: 0; display: flex; align-items: center; }
+#benUndoRedo { margin-left: auto; display: flex; align-items: center; border-right: 1px solid #334155; padding-right: 8px; }
+.rightButtons {
+  padding: 6px 10px;
+  margin: 0 2px;
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.12s ease;
+}
+.rightButtons:hover, .metronomeButton:hover { background: #1e293b; transform: none; font-weight: 500; color: #fff; }
+.metronomeButton { border-radius: 8px; padding: 4px 8px; }
+#metronomeLabel { color: #94a3b8; font-weight: 600; font-size: 12px; letter-spacing: 0.06em; }
+
+/* ---- context menus ---- */
+.noteContextMenu > ul.list {
+  width: auto;
+  min-width: 170px;
+  background: #fff;
+  color: var(--ben-ink);
+  border: 1px solid var(--ben-line);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  font-size: 13px;
+}
+.noteContextMenu > ul.list li {
+  padding: 7px 10px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.noteContextMenu > ul.list li:hover { background: #f1f5f9; }
+.noteContextMenu > ul.list li.ben-convert { color: var(--ben-muted); }
+.noteContextMenu > ul.list li:not(.ben-convert) + li.ben-convert { border-top: 1px solid var(--ben-line); border-radius: 0 0 8px 8px; margin-top: 4px; padding-top: 9px; }
+.noteContextMenu > ul.list li.ben-convert b { color: var(--ben-ink); font-weight: 600; }
+.noteContextMenu > ul.list li.ben-convert:hover { background: var(--ben-accent-soft); }
+
+/* ---- grid for all bars (replaces the old left bar) ---- */
+#benGridAll { display: inline-flex; align-items: center; gap: 6px; margin-left: 14px; padding-left: 14px; border-left: 1px solid #334155; }
+#benGridAllLabel { color: #94a3b8; font-weight: 600; font-size: 12px; letter-spacing: 0.06em; }
+#benGridAll select { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 4px 8px; font: inherit; font-size: 13px; cursor: pointer; }
+#benGridAll select:hover { border-color: #64748b; }
+.ben-bar-controls .ben-all-beats { font-weight: 600; color: var(--ben-ink); padding-right: 8px; border-right: 1px solid var(--ben-line); }
+
+/* =====================================================================
+   Smooth grid effects. Pure CSS (transform/opacity only = GPU, no slowdown).
+   Note state stays in the inline styles the editor reads; we only restyle
+   what you SEE via attribute selectors, so clicking/reading is untouched.
+   ===================================================================== */
+.hi-hat, .snare, .kick, .tom, .sticking { cursor: pointer; }
+
+/* circles: off = soft ring, hover = dark outline ring, on = black dot that pops in */
+.snare_circle, .kick_circle, .tom_circle {
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.1s ease;
+}
+.snare_circle[style*="background-color: rgb(255, 255, 255)"],
+.kick_circle[style*="background-color: rgb(255, 255, 255)"],
+.tom_circle[style*="background-color: rgb(255, 255, 255)"] {
+  border-color: #cfd5de !important;
+}
+.snare:hover .snare_circle,
+.kick:hover .kick_circle,
+.tom:hover .tom_circle {
+  border-color: var(--ben-ink) !important;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.12);
+}
+.snare:active .snare_circle,
+.kick:active .kick_circle,
+.tom:active .tom_circle {
+  transform: scale(0.88);
+  transition-duration: 0.05s;
+}
+.snare_circle[style*="background-color: rgb(0, 0, 0)"],
+.kick_circle[style*="background-color: rgb(0, 0, 0)"],
+.tom_circle[style*="background-color: rgb(0, 0, 0)"] {
+  background: radial-gradient(circle at 35% 30%, #4b5563, #111827 60%) !important;
+  border-color: #111827 !important;
+  animation: ben-pop 0.22s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+/* hi-hat / cymbal glyphs and snare ornaments */
+.hi-hat .note_part, .snare .note_part, .kick .note_part { transition: color 0.12s ease, transform 0.1s ease; }
+.hi-hat .note_part[style*="color: rgb(0, 0, 0)"],
+.snare .note_part[style*="color: rgb(0, 0, 0)"],
+.kick .note_part[style*="color: rgb(0, 0, 0)"] {
+  animation: ben-pop 0.22s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.hi-hat .note_part[style*="color: rgb(204, 204, 204)"] { color: #d6dbe3 !important; }
+.hi-hat:hover .note_part[style*="color: rgb(204, 204, 204)"] { color: #6b7280 !important; }
+.hi-hat:active .note_part { transform: scale(0.85); }
+@keyframes ben-pop {
+  0% { transform: scale(0.4); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* playback column highlight glides instead of jumping */
+.bg-highlight { transition: background-color 0.09s linear; border-radius: 8px; }
+
+/* sheet: hover shows which bar you would pick */
+.ben-sheet-hover {
+  position: absolute;
+  background: rgba(15, 23, 42, 0.04);
+  border-radius: 8px;
+  pointer-events: none;
+  transition: left 0.12s ease, top 0.12s ease, width 0.12s ease, height 0.12s ease, opacity 0.12s ease;
+}
+.ben-sheet-loop, .ben-sheet-cursor { transition: left 0.15s ease, top 0.15s ease, width 0.15s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-highlight, .ben-sheet-hover, .note_part, .snare_circle, .kick_circle, .tom_circle { transition: none; }
+  .snare_circle, .kick_circle, .tom_circle, .note_part { animation: none !important; }
+}
+
+/* ---- pinned sheet ---- */
+#sheetMusicDiv { position: relative; }
+#sheetMusicDiv.ben-pinned {
+  position: sticky;
+  top: var(--ben-header-h, 100px);
+  z-index: 20;
+  background: linear-gradient(var(--ben-bg) 85%, rgba(243, 244, 246, 0));
+  padding-bottom: 10px;
+}
+#sheetMusicDiv.ben-pinned .svgTarget { max-height: 34vh; overflow-y: auto; scrollbar-width: thin; }
+.staff-container { scroll-margin-top: calc(var(--ben-header-h, 100px) + var(--ben-sheet-h, 0px) + 10px); scroll-margin-bottom: 10px; }
+#benSheetPin {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 6;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--ben-line);
+  border-radius: 8px;
+  background: var(--ben-surface);
+  color: var(--ben-muted);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+#benSheetPin:hover { color: var(--ben-ink); border-color: #cbd5e1; }
+#benSheetPin.on { background: var(--ben-ink); color: #fff; border-color: var(--ben-ink); }
+/* sticky needs the page (not RightHandContent / the sheet's own wrapper) as its scroll box */
+#RightHandContent { overflow: visible; }
+#RightHandContent > .Printable { display: contents; }
+
+/* ---- sheet uses the full browser width ---- */
+#sheetMusicDiv.fullWidthEle { max-width: none; padding: 0 0 6px 0; }
+#sheetMusicDiv .svgTarget { border-radius: 0; box-shadow: 0 1px 0 var(--ben-line), 0 6px 14px rgba(15, 23, 42, 0.05); padding: 10px 24px; box-sizing: border-box; }
+#sheetMusicDiv.ben-pinned { padding-bottom: 8px; }
+#benSheetPin { top: 10px; right: 14px; }
+
+/* flash the grid bar you picked in the sheet */
+@keyframes ben-flash { 0% { box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.35); } 100% { box-shadow: var(--ben-shadow); } }
+.staff-container.ben-flash { animation: ben-flash 0.9s ease-out; }
+#TopNav, #midiPlayer, #midiPlayer.fullWidthEle { max-width: none; }
+
+/* =====================================================================
+   Touch screens: no sticky hover look after a tap
+   ===================================================================== */
+@media (hover: none) {
+  .snare:hover .snare_circle, .kick:hover .kick_circle, .tom:hover .tom_circle {
+    border-color: inherit;
+    box-shadow: none;
+  }
+  .snare:hover .snare_circle[style*="background-color: rgb(255, 255, 255)"],
+  .kick:hover .kick_circle[style*="background-color: rgb(255, 255, 255)"],
+  .tom:hover .tom_circle[style*="background-color: rgb(255, 255, 255)"] { border-color: #cfd5de !important; }
+  .snare:hover .snare_circle[style*="background-color: rgb(0, 0, 0)"],
+  .kick:hover .kick_circle[style*="background-color: rgb(0, 0, 0)"],
+  .tom:hover .tom_circle[style*="background-color: rgb(0, 0, 0)"] { border-color: #111827 !important; }
+  .hi-hat:hover .note_part[style*="color: rgb(204, 204, 204)"] { color: #d6dbe3 !important; }
+  .ben-sheet-hover { display: none; }
+  .hi-hat, .snare, .kick, .tom, .sticking { -webkit-tap-highlight-color: transparent; }
+}
+
+/* =====================================================================
+   Phones
+   ===================================================================== */
+@media (max-width: 720px) {
+  /* top bar: one scrollable row, icons only where possible */
+  #TopNav { height: 48px; padding: 0 8px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; white-space: nowrap; }
+  #TopNav::-webkit-scrollbar { display: none; }
+  #logoTextUpperLeft img { height: 22px; }
+  #metronomeLabel, #metronomeOptionsAnchor, #permutationAnchor, #benGridAllLabel { display: none !important; }
+  #benGridAll { margin-left: 6px; padding-left: 6px; }
+  #benUndoRedo { margin-left: 6px; border: none; padding-right: 0; }
+  .rightButtons { padding: 6px 7px; font-size: 12px; }
+  #benUndoRedo .rightButtons { font-size: 0; }
+  #benUndoRedo .rightButtons i { font-size: 16px; }
+  .metronomeButton { padding: 4px 6px; font-size: 13px; }
+  #midiPlayer { top: 48px; }
+
+  /* sheet: smaller when pinned */
+  #sheetMusicDiv .svgTarget { padding: 6px 4px; }
+  #sheetMusicDiv.ben-pinned .svgTarget { max-height: 26vh; }
+  #RightHandContent .svgTarget svg { margin-left: 0; margin-right: 0; width: 100%; }
+  #benSheetPin { top: 6px; right: 6px; width: 28px; height: 28px; }
+
+  /* title fields stack */
+  #sheetMusicTextFields { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; }
+  #sheetMusicTextFields input { width: 100%; box-sizing: border-box; }
+  #KeyButton { display: none; }
+
+  /* bars: full width cards; swipe sideways inside a bar, labels stay put */
+  #measureContainer { padding: 6px 6px 12px 6px; gap: 10px; }
+  .staff-container { width: 100%; box-sizing: border-box; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+  .staff-container .line-labels { position: sticky; left: 0; z-index: 3; background: inherit; width: 58px; box-shadow: 4px 0 6px -4px rgba(15, 23, 42, 0.15); }
+  .staff-container.ben-looped .line-labels { background: var(--ben-accent-soft); }
+  .staff-container:not(.ben-looped) .line-labels { background: var(--ben-surface); }
+  .line-labels .hh-label, .line-labels .snare-label, .line-labels .kick-label, .line-labels .stickings-label,
+  #tom1-label, #tom2-label, #tom3-label, #tom4-label { font-size: 12px; margin-left: 2px; }
+  .ben-bar-controls { position: sticky; left: 0; width: calc(100vw - 14px); box-sizing: border-box; gap: 6px 8px; }
+  .ben-bar-controls .ben-tools { margin-left: 0; width: 100%; justify-content: space-between; }
+  .ben-bar-controls .ben-tools button { padding: 6px 9px; font-size: 14px; }
+  .ben-bar-controls select { font-size: 14px; padding: 4px 18px 4px 6px; }
+
+  /* bottom buttons: compact grid */
+  #bottomButtonRow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px 8px 20px 8px; }
+  .pageBottomButton { min-width: 0; padding: 8px 4px; font-size: 11px; }
+  .pageBottomButton .fa-2x { font-size: 1.5em; }
+
+  /* menus fit the screen */
+  .noteContextMenu > ul.list { max-width: calc(100vw - 16px); max-height: 70vh; overflow-y: auto; }
+}
+
+/* hidden toms take no room at all (they used to leave empty gaps between rows) */
+.toms-container:not([style*="visible"]),
+.tom-label:not([style*="visible"]) { display: none !important; }
+
+@media (max-width: 720px) {
+  /* title / author / comment go below the bars, out of the way */
+  #RightHandContent > .nonPrintable { display: flex; flex-direction: column; }
+  #RightHandContent > .nonPrintable > #musicalInput { order: 1; }
+  #RightHandContent > .nonPrintable > #bottomButtonRow { order: 2; }
+  #RightHandContent > .nonPrintable > #sheetMusicTextFields { order: 3; padding-bottom: 24px; }
+  #RightHandContent > .nonPrintable > * { order: 4; }
+
+  /* the whole bar fits: no sideways swiping, labels readable despite the zoom */
+  .staff-container.ben-fits { overflow-x: hidden; }
+  .staff-container.ben-fits .line-labels { position: static; box-shadow: none; width: auto; }
+  .staff-container .line-labels .hh-label, .staff-container .line-labels .snare-label,
+  .staff-container .line-labels .kick-label, .staff-container .line-labels .stickings-label,
+  .staff-container .line-labels .tom-label {
+    font-size: calc(10px / var(--ben-z, 1));
+    margin-left: 0;
+  }
+  .staff-container .closeMeasureButton { display: none; }
+  /* tighter grid on phones: no gaps between cells, small gap between beats */
+  .staff-container .hi-hat, .staff-container .snare, .staff-container .kick,
+  .staff-container .tom, .staff-container .sticking { margin-left: 0; margin-right: 0; }
+  .staff-container .space_between_note_groups { width: 8px; }
+  .staff-container .hi-hat, .staff-container .snare, .staff-container .kick,
+  .staff-container .tom, .staff-container .sticking { width: 26px; }
+  .staff-container .bg-highlight { width: 28px !important; }
+
+  .staff-container .line-labels { width: calc(38px / var(--ben-z, 1)) !important; min-width: 0; }
+  .ben-bar-controls .ben-tools button { padding: 8px 10px; }
+}
+@media (max-width: 720px) {
+  /* compact bar toolbar: meter + "all" on one row, the 4 beats on the next, tools below */
+  .ben-bar-controls { gap: 6px; padding: 8px; }
+  .ben-bar-controls .ben-beat { font-size: 11px; color: var(--ben-muted); }
+  .ben-bar-controls .ben-beat:not(.ben-all-beats) select { width: 64px; padding: 3px 14px 3px 5px; font-size: 12px; background-position: right 4px center; }
+  .ben-bar-controls .ben-all-beats { border-right: none; padding-right: 0; flex: 1; }
+  .ben-bar-controls .ben-all-beats select { width: 100%; }
+}
+@media (max-width: 720px) {
+  .ben-bar-controls .ben-all-beats { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+  .ben-bar-controls .ben-all-beats select { width: 64px; }
+}
+
+/* ---- title/author/comment: only in the print/download dialog ---- */
+#RightHandContent #sheetMusicTextFields { display: none !important; }
+#totalPlayTime, #midiTextOutput { display: none !important; }
+#benDetailsDialog {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(15, 23, 42, 0.45);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.ben-dlg-card { background: #fff; border-radius: 14px; padding: 18px; width: 100%; max-width: 420px; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+.ben-dlg-title { font-weight: 700; font-size: 16px; color: var(--ben-ink); }
+.ben-dlg-sub { font-size: 13px; color: var(--ben-muted); margin: 4px 0 12px; }
+#benDetailsDialog #sheetMusicTextFields { display: flex !important; flex-direction: column; gap: 10px; padding: 0; background: none; max-width: none; text-align: left; }
+#benDetailsDialog .sheetMusicTextField { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ben-muted); }
+#benDetailsDialog .sheetMusicTextField b { font-weight: 600; }
+#benDetailsDialog input.sheetMusicInputField { width: 100%; box-sizing: border-box; border: 1px solid var(--ben-line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 14px; color: var(--ben-ink); }
+#benDetailsDialog #KeyButton { display: none; }
+.ben-dlg-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.ben-dlg-buttons button { border-radius: 9px; padding: 9px 16px; font: inherit; font-size: 14px; cursor: pointer; border: 1px solid var(--ben-line); background: #fff; }
+.ben-dlg-buttons .ben-dlg-go { background: var(--ben-ink); color: #fff; border-color: var(--ben-ink); }
+
+/* ---- phones & short screens: the top bar scrolls away, only the player stays ---- */
+@media (max-width: 720px), (max-height: 520px) {
+  #GrooveWriter > .nonPrintable:first-child { display: contents; }
+  #TopNav { position: static; }
+  #midiPlayer { position: sticky; top: 0; z-index: 30; }
+  #RightHandContent { top: 0; height: auto; }
+  #sheetMusicDiv.ben-pinned { top: var(--ben-header-h, 48px) !important; }
+}
+@media (max-width: 720px), (max-height: 520px) {
+  #TopNav { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  #TopNav::-webkit-scrollbar { display: none; }
+  #permutationAnchor { display: none !important; }
+  #measureContainer { justify-content: center; }
+}
+
+/* ---- Beatsheet branding ---- */
+.ben-logo { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: #fff; white-space: nowrap; line-height: 1; }
+.ben-logo b { font-weight: 800; color: #4ade80; }
+#logoTextUpperLeft img { display: none; }
+#shortURLLabel { display: none !important; }
+
+#benFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 18px;
+  padding: 18px 16px 28px;
+  font-size: 12px;
+  color: var(--ben-muted);
+  text-align: center;
+}
+#benFooter a { color: var(--ben-ink); text-decoration: none; font-weight: 600; }
+#benFooter a:hover { text-decoration: underline; }
+#benFooter .ben-coffee {
+  background: #fff;
+  border: 1px solid var(--ben-line);
+  border-radius: 999px;
+  padding: 7px 14px;
+  box-shadow: var(--ben-shadow);
+  font-size: 13px;
+}
+#benFooter .ben-coffee:hover { text-decoration: none; border-color: #cbd5e1; }
+@media (max-width: 720px), (max-height: 520px) {
+  #RightHandContent > .nonPrintable > #benFooter { order: 3; }
+  .ben-logo { font-size: 17px; }
+}
