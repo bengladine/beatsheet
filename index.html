@@ -14,6 +14,9 @@
 				try { t = localStorage.getItem('benTheme'); } catch (e) {}
 				if (t === 'dark' || (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches))
 					document.documentElement.classList.add('ben-dark');
+				var g = null;
+				try { g = localStorage.getItem('benGridStyle'); } catch (e) {}
+				if (g !== 'classic') document.documentElement.classList.add('ben-pads');
 			})();
 		</script>
 		<meta name="apple-mobile-web-app-capable" content="yes">
@@ -120,6 +123,7 @@
 				<span id="benUndoRedo">
 					<span class="rightButtons" onclick="myGrooveWriter.undoCommand();" title="Undo (Ctrl+Z)"><i class="fa fa-undo"></i> Undo</span>
 					<span class="rightButtons" onclick="myGrooveWriter.redoCommand();" title="Redo (Ctrl+Y)"><i class="fa fa-repeat"></i> Redo</span>
+					<span class="rightButtons" id="benGridStyleToggle" title="Grid style: pads or classic circles" onclick="(function(){var p=document.documentElement.classList.toggle('ben-pads');try{localStorage.setItem('benGridStyle', p?'pads':'classic')}catch(e){}})();"><i class="fa fa-th-large"></i></span>
 					<span class="rightButtons" id="benThemeToggle" title="Dark / light mode" onclick="(function(){var d=document.documentElement.classList.toggle('ben-dark');try{localStorage.setItem('benTheme', d?'dark':'light')}catch(e){}})();"><i class="fa fa-moon-o"></i></span>
 				</span>
 				<span id="upperRight">
