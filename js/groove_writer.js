@@ -5074,6 +5074,9 @@ function GrooveWriter() {
     var show = isRideVisible();
     var btn = document.getElementById('showHideRideButton');
     if (btn) btn.classList.toggle('ClickToHide', show);
+    // keep the TOMS button state in sync with what is really shown
+    var tbtn = document.getElementById('showHideTomsButton');
+    if (tbtn) tbtn.classList.toggle('ClickToHide', isTomsVisible());
     var npm = class_notes_per_measure;
     for (var m = 0; m < class_number_of_measures; m++) {
       var container = document.getElementById('staff-container' + (m + 1));
