@@ -37,6 +37,7 @@ import {
   constant_OUR_MIDI_HIHAT_ACCENT,
   constant_OUR_MIDI_HIHAT_CRASH,
   constant_OUR_MIDI_HIHAT_STACKER,
+  constant_OUR_MIDI_HIHAT_CRASH2,
   constant_OUR_MIDI_HIHAT_METRONOME_NORMAL,
   constant_OUR_MIDI_HIHAT_RIDE,
   constant_OUR_MIDI_HIHAT_RIDE_BELL,
@@ -397,6 +398,7 @@ function GrooveUtils() {
   //		b: ride bell
   //		m: (more) cow bell
   //    s: stacker
+  //    C: crash 2 (Drumsheet)
   //    n: metroNome normal
   //    N: metroNome accent
   //		-: off
@@ -1308,6 +1310,7 @@ function GrooveUtils() {
         data.note == constant_OUR_MIDI_HIHAT_CRASH ||
         data.note == constant_OUR_MIDI_HIHAT_RIDE ||
         data.note == constant_OUR_MIDI_HIHAT_STACKER ||
+        data.note == constant_OUR_MIDI_HIHAT_CRASH2 ||
         data.note == constant_OUR_MIDI_HIHAT_RIDE_BELL ||
         data.note == constant_OUR_MIDI_HIHAT_COW_BELL ||
         data.note == constant_OUR_MIDI_HIHAT_METRONOME_NORMAL ||

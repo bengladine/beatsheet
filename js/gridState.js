@@ -23,6 +23,7 @@ import {
   constant_ABC_HH_Ride,
   constant_ABC_HH_Ride_Bell,
   constant_ABC_HH_Stacker,
+  constant_ABC_HH_Crash2,
   constant_ABC_KI_Normal,
   constant_ABC_KI_SandK,
   constant_ABC_KI_Splash,
@@ -221,6 +222,11 @@ export function get_hh_state(id, returnType) {
     if (returnType == 'ABC')
       return constant_ABC_HH_Crash; // crash
     else if (returnType == 'URL') return 'c'; // crash
+  }
+  var c2 = document.getElementById('hh_crash2' + id);
+  if (c2 && c2.style.color == constant_note_on_color_rgb) {
+    if (returnType == 'ABC') return constant_ABC_HH_Crash2; // Ben: crash 2
+    else if (returnType == 'URL') return 'C';
   }
   if (document.getElementById('hh_stacker' + id).style.color == constant_note_on_color_rgb) {
     if (returnType == 'ABC')

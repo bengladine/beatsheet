@@ -15,6 +15,7 @@ import {
   constant_ABC_HH_Ride,
   constant_ABC_HH_Ride_Bell,
   constant_ABC_HH_Stacker,
+  constant_ABC_HH_Crash2,
   constant_ABC_KI_Normal,
   constant_ABC_KI_SandK,
   constant_ABC_KI_Splash,
@@ -41,6 +42,7 @@ import {
   constant_OUR_MIDI_HIHAT_RIDE,
   constant_OUR_MIDI_HIHAT_RIDE_BELL,
   constant_OUR_MIDI_HIHAT_STACKER,
+  constant_OUR_MIDI_HIHAT_CRASH2,
   constant_OUR_MIDI_KICK_NORMAL,
   constant_OUR_MIDI_METRONOME_1,
   constant_OUR_MIDI_METRONOME_NORMAL,
@@ -292,6 +294,9 @@ export function MIDI_from_HH_Snare_Kick_Arrays(
           break;
         case constant_ABC_HH_Stacker: // stacker
           hh_note = constant_OUR_MIDI_HIHAT_STACKER;
+          break;
+        case constant_ABC_HH_Crash2: // Ben: second crash
+          hh_note = constant_OUR_MIDI_HIHAT_CRASH2;
           break;
         case constant_ABC_HH_Metronome_Normal: // Metronome beep
           hh_note = constant_OUR_MIDI_HIHAT_METRONOME_NORMAL;

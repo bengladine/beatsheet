@@ -14,6 +14,7 @@ import {
   constant_ABC_HH_Ride,
   constant_ABC_HH_Ride_Bell,
   constant_ABC_HH_Stacker,
+  constant_ABC_HH_Crash2,
   constant_ABC_KI_Normal,
   constant_ABC_KI_SandK,
   constant_ABC_KI_Splash,
@@ -119,6 +120,9 @@ function tablatureToABCNotationPerNote(drumType, tablatureChar) {
     case 's':
       if (drumType == 'H') return constant_ABC_HH_Stacker;
       break;
+    case 'C':
+      if (drumType == 'H') return constant_ABC_HH_Crash2;
+      break;
     case 'x':
       switch (drumType) {
         case 'S':
@@ -207,6 +211,9 @@ function abcNotationToTablaturePerNote(drumType, abcChar) {
       break;
     case constant_ABC_HH_Stacker:
       tabChar = 's';
+      break;
+    case constant_ABC_HH_Crash2:
+      tabChar = 'C';
       break;
     case constant_ABC_HH_Metronome_Normal:
       tabChar = 'n';
