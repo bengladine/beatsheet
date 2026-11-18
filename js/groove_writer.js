@@ -5542,6 +5542,7 @@ function GrooveWriter() {
       setTimeout(function () {
         frame.contentWindow.focus();
         frame.contentWindow.print();
+        window.benCount && window.benCount('print-pdf');
         benThanks();
         setTimeout(function () {
           frame.remove();
@@ -5626,6 +5627,7 @@ function GrooveWriter() {
         a.download = (title || 'drumsheet') + '.png';
         document.body.appendChild(a);
         a.click();
+        window.benCount && window.benCount('download-png');
         benThanks();
         setTimeout(function () {
           URL.revokeObjectURL(a.href);
@@ -5703,6 +5705,7 @@ function GrooveWriter() {
         a.download = (title || 'drumsheet') + '.wav';
         document.body.appendChild(a);
         a.click();
+        window.benCount && window.benCount('download-wav');
         benThanks();
         setTimeout(function () {
           URL.revokeObjectURL(a.href);
