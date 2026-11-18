@@ -1,8 +1,8 @@
-# Beatsheet
+# Drumsheet
 
 **Free online drum notation editor.** Write a groove, hear it, loop it, share it.
 
-👉 **Use it:** https://bengladine.github.io/beatsheet/
+👉 **Use it:** https://drumsheet.app/
 
 Made by [Drumhof](https://drumhof.com) — drum lessons in Gent, Belgium.
 Like it? [Buy me a coffee ☕](https://ko-fi.com/gladinathor)
@@ -23,7 +23,7 @@ Links from the original Groove Scribe open here too.
 
 ## Credits & license
 
-Beatsheet is built on [GrooveScribe](https://github.com/montulli/GrooveScribe)
+Drumsheet is built on [GrooveScribe](https://github.com/montulli/GrooveScribe)
 by Lou Montulli and Mike Johnston, and is released under the same
 **GNU General Public License v2** (see `LICENSE.txt`).
 The original README is kept in `README-GrooveScribe.md`.
