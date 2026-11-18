@@ -762,6 +762,12 @@ function GrooveWriter() {
       case 16:
         id = 'metronome16ths';
         break;
+      case 12:
+        id = 'metronomeTrip';
+        break;
+      case 24:
+        id = 'metronomeSext';
+        break;
       case 0:
       /* falls through */
       default:
@@ -4327,6 +4333,18 @@ function GrooveWriter() {
     }
     renderSheetOverlay();
     fitBarsToScreen();
+    updateTripletMetronomeButtons();
+  }
+
+  // Ben: triplet / sextuplet metronome only makes sense (and only works) on a triplet-based grid
+  function updateTripletMetronomeButtons() {
+    var trip = root.myGrooveUtils.isTripletDivision(class_time_division);
+    ['metronomeTrip', 'metronomeSext'].forEach(function (bid) {
+      var b = document.getElementById(bid);
+      if (b) b.style.display = trip ? '' : 'none';
+    });
+    var f = root.class_metronome_frequency;
+    if (!trip && (f == 12 || f == 24)) root.setMetronomeFrequency(4);
   }
 
   // Ben: on phones, shrink the note grid of each bar so a whole bar fits the screen width
