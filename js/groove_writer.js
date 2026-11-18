@@ -599,6 +599,17 @@ function GrooveWriter() {
     id = Math.floor(id);
     if (id < 0 || id >= class_notes_per_measure * class_number_of_measures) return;
 
+    // Ben: with a per-beat grid many cells are hidden; light up the nearest visible cell
+    // at or before this position (within the same bar) instead of an invisible one.
+    var barStart = id - (id % class_notes_per_measure);
+    var snap = id;
+    while (snap > barStart) {
+      var cell = document.getElementById('bg-highlight' + snap);
+      if (!cell || cell.style.display != 'none') break;
+      snap--;
+    }
+    id = snap;
+
     if (class_cur_all_notes_highlight_id === id) return; // already highligted
 
     if (class_cur_all_notes_highlight_id !== false) {
