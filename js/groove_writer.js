@@ -2458,6 +2458,8 @@ function GrooveWriter() {
           meterFor(0)[1],
           renderWidth
         );
+        // Ben: bar numbers above every bar
+        fullABC = fullABC.replace('%%stretchlast', '%%measurenb 1\n%%measurefont calibri 11\n%%stretchlast');
         root.myGrooveUtils.note_mapping_array = [];
         class_bar_map_start = [];
         var prevMeter = meterFor(0).join('/');
@@ -2471,6 +2473,10 @@ function GrooveWriter() {
           // Only put one measure per line for 32nd notes and above because of width issues
           numberOfMeasuresPerLine = Math.max(1, Math.round(sheetW / 1100));
         }
+        // Ben: user setting "bars per line" (auto = by screen width; print auto = 2)
+        var bplSetting = getBarsPerLineSetting();
+        if (bplSetting) numberOfMeasuresPerLine = bplSetting;
+        else if (root._benPrintLayout) numberOfMeasuresPerLine = 2;
 
         for (i = 0; i < class_number_of_measures; i++) {
           // we already go the array states above, don't get it again.
@@ -5108,6 +5114,16 @@ function GrooveWriter() {
     /* storage may be unavailable */
   }
 
+  function getBarsPerLineSetting() {
+    var v = 0;
+    try {
+      v = parseInt(localStorage.getItem('benBarsPerLine') || '0', 10) || 0;
+    } catch (e) {
+      /* ignore */
+    }
+    return v;
+  }
+
   function updateSheetPin() {
     var div = document.getElementById('sheetMusicDiv');
     if (!div) return;
@@ -5128,6 +5144,25 @@ function GrooveWriter() {
       div.appendChild(btn);
     }
     btn.className = class_sheet_pinned ? 'on' : '';
+    var bpl = document.getElementById('benBarsPerLine');
+    if (!bpl) {
+      bpl = document.createElement('select');
+      bpl.id = 'benBarsPerLine';
+      bpl.title = 'Bars per line in the sheet music';
+      bpl.innerHTML =
+        '<option value="0">Bars/line: auto</option><option value="1">1 bar/line</option>' +
+        '<option value="2">2 bars/line</option><option value="3">3 bars/line</option><option value="4">4 bars/line</option>';
+      bpl.value = String(getBarsPerLineSetting());
+      bpl.onchange = function () {
+        try {
+          localStorage.setItem('benBarsPerLine', bpl.value);
+        } catch (e) {
+          /* ignore */
+        }
+        root.refresh_ABC();
+      };
+      div.appendChild(bpl);
+    }
     btn.title = class_sheet_pinned ? 'Sheet stays on screen while you scroll (click to unpin)' : 'Pin the sheet to the top while you scroll';
     btn.innerHTML = '<i class="fa fa-thumb-tack"></i>';
     var h = class_sheet_pinned ? div.offsetHeight : 0;
