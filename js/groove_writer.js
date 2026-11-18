@@ -4401,9 +4401,14 @@ function GrooveWriter() {
       card.style.setProperty('--ben-z', 1);
       if (!phone) {
         card.style.removeProperty('--ben-z');
-        // card as wide as its note grid (min. room for the toolbar), so all bars look tidy
+        // card as wide as its note grid (min. room for the toolbar), so all bars look tidy;
+        // in a narrow column (side-by-side layout) the grid shrinks to fit
         card.style.width = '';
-        card.style.width = Math.max(grid.scrollWidth + 28, 560) + 'px';
+        var room = (mc ? mc.clientWidth : window.innerWidth) - 110;
+        var want = grid.scrollWidth + 28;
+        var zz = want > room ? Math.max(0.6, room / want) : 1;
+        if (zz < 1) grid.style.zoom = zz;
+        card.style.width = Math.min(Math.max(want * zz, 520), Math.max(room, 520)) + 'px';
         continue;
       }
       card.style.width = '';
