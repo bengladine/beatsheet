@@ -2483,8 +2483,10 @@ function GrooveWriter() {
 
         var numberOfMeasuresPerLine = sheetBarsPerLine();
         var addon_abc;
-        // Ben: a short last line keeps natural proportions instead of being stretched flat
-        fullABC = fullABC.replace('%%stretchlast 1', '%%stretchlast 0');
+        // Ben: full lines fill the width; only a short last line (fewer bars than the others)
+        // keeps its natural proportions instead of being stretched flat
+        if (class_number_of_measures % numberOfMeasuresPerLine !== 0)
+          fullABC = fullABC.replace('%%stretchlast 1', '%%stretchlast 0');
 
         for (i = 0; i < class_number_of_measures; i++) {
           // we already go the array states above, don't get it again.
