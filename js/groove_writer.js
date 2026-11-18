@@ -4310,6 +4310,8 @@ function GrooveWriter() {
       container.classList.toggle('ben-looped', !!class_loop_bars[m]);
       renderBarControls(container, m, perBeat);
     }
+    // the crash/ride rows copy their cell visibility from the hi-hat row
+    if (document.querySelector('.ben-ride-container')) renderRideRows();
     renderSheetOverlay();
     fitBarsToScreen();
     updateTripletMetronomeButtons();
