@@ -4377,6 +4377,7 @@ function GrooveWriter() {
       var card = document.getElementById('staff-container' + (m + 1));
       var grid = card && card.querySelector('.notes-row-container');
       if (!grid) continue;
+      card.style.gridRow = phone ? '' : String(m + 1); // explicit rows so the "+" can share the last one
       grid.style.zoom = '';
       card.style.setProperty('--ben-z', 1);
       if (!phone) {
