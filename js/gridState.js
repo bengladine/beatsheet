@@ -223,7 +223,7 @@ export function get_hh_state(id, returnType) {
       return constant_ABC_HH_Crash; // crash
     else if (returnType == 'URL') return 'c'; // crash
   }
-  var c2 = document.getElementById('hh_crash2' + id);
+  var c2 = document.getElementById('hh_crashtwo' + id);
   if (c2 && c2.style.color == constant_note_on_color_rgb) {
     if (returnType == 'ABC') return constant_ABC_HH_Crash2; // Ben: crash 2
     else if (returnType == 'URL') return 'C';
