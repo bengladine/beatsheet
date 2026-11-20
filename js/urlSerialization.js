@@ -90,6 +90,9 @@ export function getGrooveDataFromUrlString(encodedURLData, config = {}) {
     myGrooveData.noteValue
   );
 
+  // Drumsheet: per-beat grid levels (bars separated by ',', beats by '.')
+  myGrooveData.beatGrid = getQueryVariableFromString('Grid', false, encodedURLData) || null;
+
   Stickings_string = getQueryVariableFromString('Stickings', false, encodedURLData);
   if (!Stickings_string) {
     Stickings_string = GetDefaultStickingsGroove(
@@ -269,6 +272,8 @@ export function getUrlStringFromGrooveData(myGrooveData, url_destination) {
     myGrooveData.noteValue
   );
   if (metersString) fullURL += '&Meters=' + metersString;
+
+  if (myGrooveData.beatGrid) fullURL += '&Grid=' + myGrooveData.beatGrid;
 
   // # metronome setting
   if (myGrooveData.metronomeFrequency !== 0) {
