@@ -95,6 +95,8 @@ export default [
   // sourceType to 'module'.
   {
     files: [
+      'js/account.js',
+      'js/firebase-config.js',
       'js/constants.js',
       'js/musicMath.js',
       'js/noteArrays.js',
