@@ -5908,7 +5908,7 @@ function GrooveWriter() {
           })
           .join('') +
         '</div>' +
-        '<div class="ben-wn-foot"><a href="https://github.com/bengladine/beatsheet/issues/new" target="_blank" rel="noopener">' +
+        '<div class="ben-wn-foot"><a href="https://forms.gle/rgXMxauXFDep4EJq6" target="_blank" rel="noopener">' +
         '<i class="fa fa-comment-o"></i> Got a request or found a bug?</a>' +
         (all ? '' : '<button class="ben-wn-ok">Got it</button>') +
         '</div>';
