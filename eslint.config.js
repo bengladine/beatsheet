@@ -96,6 +96,7 @@ export default [
   {
     files: [
       'js/account.js',
+      'js/updates.js',
       'js/firebase-config.js',
       'js/constants.js',
       'js/musicMath.js',

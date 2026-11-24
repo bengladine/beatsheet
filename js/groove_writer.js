@@ -5874,6 +5874,65 @@ function GrooveWriter() {
     }
   };
 
+  // Drumsheet: "What's new" card for returning users; closed = gone until the next update
+  // ---------------------------------------------------------------------
+  (function () {
+    var SEEN = 'benSeenUpdate';
+    function seen() {
+      try {
+        return parseInt(localStorage.getItem(SEEN) || '0', 10);
+      } catch (e) {
+        return 9999;
+      }
+    }
+    function markSeen(id) {
+      try {
+        localStorage.setItem(SEEN, String(id));
+      } catch (e) {
+        /* ignore */
+      }
+    }
+    function show(list, all) {
+      var old = document.getElementById('benWhatsNew');
+      if (old) old.remove();
+      if (!list.length) return;
+      var card = document.createElement('div');
+      card.id = 'benWhatsNew';
+      card.setAttribute('role', 'dialog');
+      card.innerHTML =
+        '<div class="ben-wn-head"><span><i class="fa fa-star"></i> What\'s new</span><button class="ben-wn-x" aria-label="Close">&times;</button></div>' +
+        '<div class="ben-wn-body">' +
+        list
+          .map(function (u) {
+            return '<div class="ben-wn-date">' + u.date + '</div><ul>' + u.items.map((i) => '<li>' + i + '</li>').join('') + '</ul>';
+          })
+          .join('') +
+        '</div>' +
+        '<div class="ben-wn-foot"><a href="https://github.com/bengladine/beatsheet/issues/new" target="_blank" rel="noopener">' +
+        '<i class="fa fa-comment-o"></i> Got a request or found a bug?</a>' +
+        (all ? '' : '<button class="ben-wn-ok">Got it</button>') +
+        '</div>';
+      document.body.appendChild(card);
+      var close = function () {
+        markSeen(list[0].id > seen() ? list[0].id : seen());
+        card.classList.add('out');
+        setTimeout(() => card.remove(), 300);
+      };
+      card.querySelector('.ben-wn-x').onclick = close;
+      var ok = card.querySelector('.ben-wn-ok');
+      if (ok) ok.onclick = close;
+    }
+    import('./updates.js')
+      .then(function (m) {
+        root.showWhatsNew = function () {
+          show(m.UPDATES, true);
+        };
+        var fresh = m.UPDATES.filter((u) => u.id > seen()).slice(0, 2);
+        if (fresh.length) setTimeout(() => show(fresh, false), 1500);
+      })
+      .catch(function () {});
+  })();
+
   // Drumsheet: tap tempo. Tap the TAP button (or press T) in time; the BPM follows the average of the last taps.
   // ---------------------------------------------------------------------
   (function () {
