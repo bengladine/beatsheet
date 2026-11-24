@@ -12,11 +12,12 @@ service cloud.firestore {
     }
     // Teacher waitlist (teachers.html): anyone may add themselves; nobody can read the list from the web
     match /waitlist/{id} {
-      allow create: if request.resource.data.keys().hasOnly(['email', 'students', 'price', 'note', 'created'])
+      allow create: if request.resource.data.keys().hasOnly(['email', 'students', 'price', 'ledger', 'note', 'created'])
         && request.resource.data.email is string && request.resource.data.email.size() <= 200
         && request.resource.data.email.matches('^[^@ ]+@[^@ ]+[.][^@ ]+$')
         && request.resource.data.students is string && request.resource.data.students.size() <= 20
         && request.resource.data.price in ['yes', 'maybe', 'cheaper', 'free']
+        && request.resource.data.ledger is bool
         && request.resource.data.note is string && request.resource.data.note.size() <= 1000
         && request.resource.data.created == request.time;
     }
