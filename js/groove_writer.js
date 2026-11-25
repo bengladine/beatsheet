@@ -3781,11 +3781,13 @@ function GrooveWriter() {
 
     if (myGrooveData.showStickings) root.stickingsShowHide(true, true, true);
 
-    document.getElementById('tuneTitle').value = myGrooveData.title;
+    // a pasted link is never a title/author/comment (it would show up as a huge line on the sheet)
+    var noLink = (v) => (/^\s*https?:\/\//i.test(v || '') ? '' : v);
+    document.getElementById('tuneTitle').value = noLink(myGrooveData.title);
 
-    document.getElementById('tuneAuthor').value = myGrooveData.author;
+    document.getElementById('tuneAuthor').value = noLink(myGrooveData.author);
 
-    document.getElementById('tuneComments').value = myGrooveData.comments;
+    document.getElementById('tuneComments').value = noLink(myGrooveData.comments);
 
     root.myGrooveUtils.setTempo(myGrooveData.tempo);
 
@@ -5932,6 +5934,23 @@ function GrooveWriter() {
       })
       .catch(function () {});
   })();
+
+  // Drumsheet: a link pasted into the title/author/comment box is not put there (it would show up
+  // as a huge line on the sheet music); a short note explains it. Nothing else changes.
+  ['tuneTitle', 'tuneAuthor', 'tuneComments'].forEach(function (id) {
+    var box = document.getElementById(id);
+    if (!box) return;
+    box.addEventListener('paste', function (e) {
+      var t = ((e.clipboardData || window.clipboardData) || { getData: () => '' }).getData('text') || '';
+      if (!/^\s*https?:\/\//i.test(t)) return;
+      e.preventDefault();
+      var note = document.createElement('div');
+      note.className = 'ben-paste-note';
+      note.textContent = 'That looks like a link. Type a name here instead (or leave it empty).';
+      box.insertAdjacentElement('afterend', note);
+      setTimeout(() => note.remove(), 3500);
+    });
+  });
 
   // Drumsheet: tap tempo. Tap the TAP button (or press T) in time; the BPM follows the average of the last taps.
   // ---------------------------------------------------------------------
