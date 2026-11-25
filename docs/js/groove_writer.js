@@ -24,8 +24,8 @@
 // GrooveUtils and the drum-notation / MIDI constants come from groove_utils.js.
 // Vendored libraries (Midi, MIDI, Pablo, ShareButton) remain window globals
 // provided by the classic <script> tags loaded before this module.
-import { addInlineMeter, barFraction, chooseBaseMeter } from './meters.js?v=1795627231';
-import { GrooveUtils } from './groove_utils.js?v=1795627231';
+import { addInlineMeter, barFraction, chooseBaseMeter } from './meters.js?v=1795628799';
+import { GrooveUtils } from './groove_utils.js?v=1795628799';
 import {
   constant_ABC_HH_Accent,
   constant_ABC_HH_Close,
@@ -87,10 +87,10 @@ import {
   constant_sticking_left_on_color_rgb,
   constant_sticking_both_on_color_rgb,
   constant_sticking_count_on_color_rgb,
-} from './constants.js?v=1795627231';
-import * as _perm from './permutations.js?v=1795627231';
-import * as _view from './viewHtml.js?v=1795627231';
-import * as _grid from './gridState.js?v=1795627231';
+} from './constants.js?v=1795628799';
+import * as _perm from './permutations.js?v=1795628799';
+import * as _view from './viewHtml.js?v=1795628799';
+import * as _grid from './gridState.js?v=1795628799';
 
 // GrooveWriter class.   The only one in this file.
 
@@ -1473,7 +1473,7 @@ function GrooveWriter() {
           break;
       }
 
-      updateSheetMusic();
+      scheduleSheetMusic(); // the tapped cell shows first, then the sheet follows
     }
   };
 
@@ -2228,6 +2228,7 @@ function GrooveWriter() {
   };
 
   root.undoCommand = function () {
+    flushSheetMusic(); // a tap from a moment ago must be on the undo list first
     if (class_undo_stack.length > 1) {
       var undoURL = class_undo_stack.pop();
       root.AddItemToUndoOrRedoStack(undoURL, class_redo_stack); // add to redo stack
@@ -2239,6 +2240,7 @@ function GrooveWriter() {
   };
 
   root.redoCommand = function () {
+    flushSheetMusic();
     if (class_redo_stack.length > 0) {
       var redoURL = class_redo_stack.pop();
       root.AddItemToUndoOrRedoStack(redoURL, class_undo_stack); // add to undo stack
@@ -2588,7 +2590,36 @@ function GrooveWriter() {
     return Math.max(1, Math.round(sheetW / (class_notes_per_measure >= 32 ? 1100 : 760)));
   }
 
+  // Ben: a note tap only changes one cell, but redrawing the sheet takes a while (most of it
+  // the browser laying out the new sheet). Let the browser show the tapped cell first and
+  // redraw the sheet right after. Anything that needs the sheet, the link or the undo list to
+  // be up to date (undo, redo, share, save, ...) calls flushSheetMusic() first.
+  var class_sheet_music_pending = false;
+  var class_sheet_music_raf = 0;
+  var class_sheet_music_timer = 0;
+  function scheduleSheetMusic() {
+    if (class_sheet_music_pending) return;
+    class_sheet_music_pending = true;
+    class_sheet_music_raf = requestAnimationFrame(function () {
+      class_sheet_music_raf = 0;
+      class_sheet_music_timer = setTimeout(function () {
+        class_sheet_music_timer = 0;
+        if (class_sheet_music_pending) updateSheetMusic();
+      }, 0);
+    });
+  }
+  function flushSheetMusic() {
+    if (class_sheet_music_pending) updateSheetMusic();
+  }
+  root.flushSheetMusic = flushSheetMusic;
+
   function updateSheetMusic() {
+    if (class_sheet_music_pending) {
+      class_sheet_music_pending = false;
+      if (class_sheet_music_raf) cancelAnimationFrame(class_sheet_music_raf);
+      if (class_sheet_music_timer) clearTimeout(class_sheet_music_timer);
+      class_sheet_music_raf = class_sheet_music_timer = 0;
+    }
     var renderWidth = 600;
     var svgTarget = document.getElementById('svgTarget');
     if (svgTarget) {
@@ -2625,6 +2656,7 @@ function GrooveWriter() {
 
     diverr.innerHTML = svg_return.error_html;
     svgTarget.innerHTML = svg_return.svg;
+    root.myGrooveUtils.abcNoteNumCurrentlyHighlighted = -1; // the new sheet has no highlight yet
     renderSheetOverlay();
     renderRideRows();
     mirrorSheetToPopup();
@@ -3092,7 +3124,18 @@ function GrooveWriter() {
       root.myGrooveUtils.doesDivisionSupportSwing(class_notes_per_measure)
     );
 
-    window.onresize = root.refresh_ABC;
+    // Ben: redraw the sheet once resizing has settled, and only when the width changed: on
+    // phones the address bar hides/shows while scrolling, which resizes the height only
+    var lastSheetWidth = window.innerWidth;
+    var resizeTimer = 0;
+    window.onresize = function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        if (window.innerWidth === lastSheetWidth) return;
+        lastSheetWidth = window.innerWidth;
+        root.refresh_ABC();
+      }, 150);
+    };
 
     root.browserInfo = root.myGrooveUtils.getBrowserInfo();
     if (root.browserInfo.browser == 'MSIE' && root.browserInfo.version < 10) {
@@ -3532,6 +3575,7 @@ function GrooveWriter() {
   // this will allow us to bookmark or reference a groove and handle undo/redo.
   //
   function get_FullURLForPage(url_destination) {
+    flushSheetMusic();
     var myGrooveData = root.grooveDataFromClickableUI();
     return root.myGrooveUtils.getUrlStringFromGrooveData(myGrooveData, url_destination);
   }
@@ -5556,8 +5600,10 @@ function GrooveWriter() {
     restartPlaybackIfPlaying(false);
   };
 
+  var overlayResizeTimer = 0;
   window.addEventListener('resize', function () {
-    setTimeout(renderSheetOverlay, 300);
+    clearTimeout(overlayResizeTimer); // once, after resizing settles (not once per event)
+    overlayResizeTimer = setTimeout(renderSheetOverlay, 300);
   });
 
   // ---------------------------------------------------------------------
@@ -5970,8 +6016,10 @@ function GrooveWriter() {
         svgTarget.scrollTo({ top: Math.max(0, r.top - 8), behavior: 'smooth' });
     }
   }
+  var pinResizeTimer = 0;
   window.addEventListener('resize', function () {
-    setTimeout(updateSheetPin, 300);
+    clearTimeout(pinResizeTimer);
+    pinResizeTimer = setTimeout(updateSheetPin, 300);
   });
 
   // ---------------------------------------------------------------------
@@ -5982,7 +6030,7 @@ function GrooveWriter() {
   var MY_KEY = 'benMyGrooves';
   var acct = null; // the account module, loaded only when needed
   function loadAccount() {
-    if (!acct) acct = import('./account.js?v=1795627231');
+    if (!acct) acct = import('./account.js?v=1795628799');
     return acct;
   }
   function localLoad() {
@@ -6482,7 +6530,7 @@ function GrooveWriter() {
       var ok = card.querySelector('.ben-wn-ok');
       if (ok) ok.onclick = close;
     }
-    import('./updates.js?v=1795627231')
+    import('./updates.js?v=1795628799')
       .then(function (m) {
         root.showWhatsNew = function () {
           show(m.UPDATES, true);
@@ -6955,6 +7003,9 @@ function GrooveWriter() {
     var mapIdx = (class_bar_map_start[pos.bar] || 0) + Math.floor(pos.slot + 1e-6);
     var real = -1;
     for (var i = 0; i <= mapIdx && i < map.length; i++) if (map[i]) real++;
+    // Ben: called every frame by the play clock; rewriting the same highlight makes the browser
+    // re-check the sheet's styles each frame for nothing
+    if (real === root.myGrooveUtils.abcNoteNumCurrentlyHighlighted && real >= 0) return;
     root.myGrooveUtils.highlightNoteInABCSVGByIndex(real);
   };
 
