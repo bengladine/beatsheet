@@ -1,5 +1,6 @@
 // Drumsheet: "What's new". Add a new entry at the TOP with a higher id when you ship something
-// users should know about. Each entry is shown once: newer entries than the last one shown.
+// users should know about, and keep the older entries below it. Each entry is shown once:
+// a returning visitor gets every entry newer than the last one they saw, by date.
 export const UPDATES = [
   {
     id: 4,
