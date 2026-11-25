@@ -6,14 +6,17 @@
 // sources touch that jsdom does not implement, so that unmodified production
 // code can be loaded and exercised without throwing at import time.
 
-import { vi, beforeEach, afterAll } from 'vitest';
+import { vi, beforeEach, afterEach, afterAll } from 'vitest';
 
-// The app starts a few delayed jobs on load (e.g. a scroll nudge after 1 s, the
-// "What's new" card after 1.5 s). In a test file they can fire after the file has
-// finished and its jsdom page is gone, and then throw "window is not defined",
-// which vitest reports as an unhandled error. Remember every pending timeout and
-// cancel what is left when the file is done.
-const pendingTimeouts = new Set();
+// The app starts delayed jobs: on load (a scroll nudge after 1 s, the "What's new"
+// card after 1.5 s) and after edits (a note tap redraws the sheet one frame later).
+// Left alone they fire after their test is over, on the next test's page or after
+// the file's jsdom page is gone, and throw. So: a timeout or animation frame that a
+// test starts is cancelled when that test ends, and whatever is left (started while
+// loading the file) is cancelled when the file is done.
+const pendingTimeouts = new Map(); // id -> started during a test?
+const pendingFrames = new Set();
+let inTest = false;
 const realSetTimeout = globalThis.setTimeout;
 const realClearTimeout = globalThis.clearTimeout;
 globalThis.setTimeout = function (fn, ms, ...args) {
@@ -25,15 +28,44 @@ globalThis.setTimeout = function (fn, ms, ...args) {
     ms,
     ...args
   );
-  pendingTimeouts.add(id);
+  pendingTimeouts.set(id, inTest);
   return id;
 };
 globalThis.clearTimeout = function (id) {
   pendingTimeouts.delete(id);
   return realClearTimeout(id);
 };
+const realRaf = globalThis.requestAnimationFrame;
+const realCancelRaf = globalThis.cancelAnimationFrame;
+if (realRaf) {
+  globalThis.requestAnimationFrame = function (fn) {
+    const id = realRaf.call(globalThis, function (t) {
+      pendingFrames.delete(id);
+      return fn(t);
+    });
+    if (inTest) pendingFrames.add(id);
+    return id;
+  };
+  globalThis.cancelAnimationFrame = function (id) {
+    pendingFrames.delete(id);
+    return realCancelRaf.call(globalThis, id);
+  };
+}
+beforeEach(() => {
+  inTest = true;
+});
+afterEach(() => {
+  inTest = false;
+  pendingTimeouts.forEach((duringTest, id) => {
+    if (!duringTest) return;
+    realClearTimeout(id);
+    pendingTimeouts.delete(id);
+  });
+  pendingFrames.forEach((id) => realCancelRaf && realCancelRaf.call(globalThis, id));
+  pendingFrames.clear();
+});
 afterAll(() => {
-  pendingTimeouts.forEach((id) => realClearTimeout(id));
+  pendingTimeouts.forEach((_, id) => realClearTimeout(id));
   pendingTimeouts.clear();
 });
 
