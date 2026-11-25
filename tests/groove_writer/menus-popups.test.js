@@ -188,10 +188,18 @@ describe('anchor openers', () => {
     expect(menu.style.display).toBe('block');
   });
 
-  it('DownloadAnchorClick shows the download context menu', () => {
-    const menu = document.getElementById('downloadContextMenu');
+  // Drumsheet: Download opens the "Sheet details" dialog with one button per format
+  // (the old downloadContextMenu is no longer used).
+  it('DownloadAnchorClick opens the sheet details dialog with the download formats', () => {
     gw.DownloadAnchorClick({ clientX: 100, clientY: 100 });
-    expect(menu.style.display).toBe('block');
+    const dlg = document.getElementById('benDetailsDialog');
+    expect(dlg.style.display).toBe('flex');
+    expect(Array.from(dlg.querySelectorAll('.ben-dlg-go')).map((b) => b.textContent)).toEqual([
+      'PDF',
+      'PNG image',
+      'Audio (WAV)',
+      'MIDI file',
+    ]);
   });
 });
 

@@ -283,7 +283,8 @@ describe('GrooveWriter view & lifecycle', () => {
 
   describe('displayNewSVG', () => {
     // Reads #ABCsource.value, calls myGrooveUtils.renderABCtoSVG on it, and
-    // places the resulting svg/error_html into #svgTarget / #diverr.
+    // places the resulting svg/error_html into #svgTarget / #diverr. Drumsheet then
+    // adds its click/drag layer (play-from, loop, move bars) on top of the sheet.
 
     it('places the rendered svg into #svgTarget and error_html into #diverr', async () => {
       const gw = await newGrooveWriter();
@@ -296,7 +297,9 @@ describe('GrooveWriter view & lifecycle', () => {
       gw.displayNewSVG();
 
       expect(gw.myGrooveUtils.renderABCtoSVG).toHaveBeenCalledWith('X:1');
-      expect(document.getElementById('svgTarget').innerHTML).toBe('<svg>hi</svg>');
+      const target = document.getElementById('svgTarget');
+      expect(target.firstElementChild.outerHTML).toBe('<svg>hi</svg>');
+      expect(target.querySelector(':scope > .ben-sheet-layer')).toBeTruthy();
       expect(document.getElementById('diverr').innerHTML).toBe('');
     });
 
@@ -310,7 +313,9 @@ describe('GrooveWriter view & lifecycle', () => {
 
       gw.displayNewSVG();
 
-      expect(document.getElementById('svgTarget').innerHTML).toBe('');
+      const target = document.getElementById('svgTarget');
+      expect(target.querySelector('svg')).toBeNull(); // nothing rendered, only the (empty) click layer
+      expect(Array.from(target.children).map((el) => el.className)).toEqual(['ben-sheet-layer']);
       expect(document.getElementById('diverr').innerHTML).toBe('<div class="error">oops</div>');
     });
   });

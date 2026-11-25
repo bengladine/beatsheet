@@ -94,13 +94,13 @@ describe('GrooveWriter url-export (js/groove_writer.js)', () => {
       expect(document.title).toBe('Groove by Neil');
     });
 
-    it('falls back to the app title ("Groove Scribe") when title and author are both empty', async () => {
+    it('falls back to the app title (Drumsheet) when title and author are both empty', async () => {
       const gw = await newGrooveWriter();
       buildGridDOM(gw, 1);
 
       gw.updateCurrentURL();
 
-      expect(document.title).toBe('Groove Scribe');
+      expect(document.title).toBe('Drumsheet: free online drum notation editor');
     });
   });
 
@@ -150,18 +150,21 @@ describe('GrooveWriter url-export (js/groove_writer.js)', () => {
       expect(() => gw.close_FullURLPopup()).not.toThrow();
     });
 
-    it('show_FullURLPopup throws because it constructs `new ShareButton(...)`, a vendored global (js/share-button.min.js) never loaded by this module-based test harness', async () => {
-      // show_FullURLPopup is a classic-script function that assumes
-      // share-button.min.js has already run as a <script> tag (as it does in
-      // index.html) to define the global `ShareButton`. Our test harness only
-      // loads groove_writer.js/groove_utils.js through the ES-module
-      // transform, so `ShareButton` is undefined here -- this is a test
-      // environment gap, not a groove_writer.js bug.
+    it('show_FullURLPopup shows the full link with the shortener off (the short-link service is gone)', async () => {
+      // Groove Scribe built a ShareButton widget here and asked Firebase Dynamic Links for a
+      // short link. That service has shut down, so Drumsheet just shows the full link.
+      const instances = installFakeXHR();
       const gw = await newGrooveWriter();
       buildGridDOM(gw, 1);
       buildURLPopupDOM();
+      document.getElementById('shortenerCheckbox').checked = true;
 
-      expect(() => gw.show_FullURLPopup()).toThrow(/ShareButton is not defined/);
+      expect(() => gw.show_FullURLPopup()).not.toThrow();
+
+      expect(instances).toHaveLength(0);
+      expect(document.getElementById('fullURLPopup').style.display).toBe('block');
+      expect(document.getElementById('fullURLPopupTextField').value).toContain('TimeSig=4/4');
+      expect(document.getElementById('shortenerCheckbox').checked).toBe(false);
     });
   });
 
@@ -218,7 +221,8 @@ describe('GrooveWriter url-export (js/groove_writer.js)', () => {
       expect(document.getElementById('fullURLPopup').style.display).toBe('block');
     });
 
-    it('shortenerCheckboxChanged, when checked, POSTs to the firebasedynamiclinks shortener with the full URL', async () => {
+    it('shortenerCheckboxChanged, when checked, makes no network call: the box unchecks and the full link stays', async () => {
+      // The Firebase Dynamic Links shortener was shut down, so there is nothing to ask.
       const instances = installFakeXHR();
       const gw = await newGrooveWriter();
       buildGridDOM(gw, 1);
@@ -227,43 +231,9 @@ describe('GrooveWriter url-export (js/groove_writer.js)', () => {
 
       gw.shortenerCheckboxChanged();
 
-      expect(instances).toHaveLength(1);
-      expect(instances[0].method).toBe('POST');
-      expect(instances[0].url).toContain('firebasedynamiclinks.googleapis.com/v1/shortLinks');
-      const body = JSON.parse(instances[0].sentBody);
-      expect(body.dynamicLinkInfo.link).toContain('TimeSig=4/4');
-    });
-
-    it('shortenerCheckboxChanged fills the field and re-checks the box when the shortener XHR succeeds', async () => {
-      const instances = installFakeXHR();
-      const gw = await newGrooveWriter();
-      buildGridDOM(gw, 1);
-      buildURLPopupDOM();
-      document.getElementById('shortenerCheckbox').checked = true;
-
-      gw.shortenerCheckboxChanged();
-      Object.defineProperty(instances[0], 'status', { value: 200, configurable: true });
-      instances[0].responseText = JSON.stringify({ shortLink: 'https://gscribe.com/share/xyz' });
-      instances[0].onload();
-
-      expect(document.getElementById('fullURLPopupTextField').value).toBe(
-        'https://gscribe.com/share/xyz'
-      );
-      expect(document.getElementById('shortenerCheckbox').checked).toBe(true);
-    });
-
-    it('shortenerCheckboxChanged unchecks the box when the shortener XHR fails', async () => {
-      const instances = installFakeXHR();
-      const gw = await newGrooveWriter();
-      buildGridDOM(gw, 1);
-      buildURLPopupDOM();
-      document.getElementById('shortenerCheckbox').checked = true;
-
-      gw.shortenerCheckboxChanged();
-      Object.defineProperty(instances[0], 'status', { value: 500, configurable: true });
-      instances[0].onload();
-
+      expect(instances).toHaveLength(0);
       expect(document.getElementById('shortenerCheckbox').checked).toBe(false);
+      expect(document.getElementById('fullURLPopupTextField').value).toContain('TimeSig=4/4');
     });
 
     it('embedCodeCheckboxChanged, when checked, fills an <iframe> embed snippet synchronously (no network call)', async () => {
@@ -283,17 +253,23 @@ describe('GrooveWriter url-export (js/groove_writer.js)', () => {
       expect(document.getElementById('shortenerCheckbox').checked).toBe(false);
     });
 
-    it('embedCodeCheckboxChanged, when unchecked, falls back to the shortener XHR path', async () => {
+    it('embedCodeCheckboxChanged, when unchecked again, puts the plain full link back (no network call)', async () => {
       const instances = installFakeXHR();
       const gw = await newGrooveWriter();
       buildGridDOM(gw, 1);
       buildURLPopupDOM();
-      document.getElementById('embedCodeCheckbox').checked = false;
+      document.getElementById('embedCodeCheckbox').checked = true;
+      gw.embedCodeCheckboxChanged();
+      expect(document.getElementById('fullURLPopupTextField').value).toMatch(/^<iframe/);
 
+      document.getElementById('embedCodeCheckbox').checked = false;
       gw.embedCodeCheckboxChanged();
 
-      expect(instances).toHaveLength(1);
-      expect(instances[0].url).toContain('firebasedynamiclinks.googleapis.com/v1/shortLinks');
+      expect(instances).toHaveLength(0);
+      const value = document.getElementById('fullURLPopupTextField').value;
+      expect(value).not.toMatch(/^<iframe/);
+      expect(value).toContain('TimeSig=4/4');
+      expect(value).not.toContain('GrooveEmbed.html');
     });
   });
 
@@ -497,49 +473,36 @@ describe('GrooveWriter url-export (js/groove_writer.js)', () => {
   });
 
   describe('printMusic', () => {
-    // printMusic branches on `root.browserInfo`, which is only populated by
-    // runsOnPageLoad() (not exercised here); we set it directly as a fixture.
-    it('calls window.print() directly for any browser/platform other than Chrome+windows', async () => {
+    // Drumsheet: Print first opens a small "Sheet details" dialog (title / author shown on the
+    // printed sheet); its Print button then prints an A4 portrait layout.
+    it('opens the sheet details dialog with a single Print button, and does not print yet', async () => {
       const gw = await newGrooveWriter();
       buildGridDOM(gw, 1);
-      gw.browserInfo = { browser: 'Firefox', platform: 'linux' };
+      const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
+      const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+      gw.printMusic();
+
+      const dlg = document.getElementById('benDetailsDialog');
+      expect(dlg).toBeTruthy();
+      expect(dlg.style.display).toBe('flex');
+      const buttons = Array.from(dlg.querySelectorAll('.ben-dlg-go')).map((b) => b.textContent);
+      expect(buttons).toEqual(['Print']);
+      expect(dlg.querySelector('.ben-dlg-sub').textContent).toContain('printed sheet');
+      expect(printSpy).not.toHaveBeenCalled();
+      expect(openSpy).not.toHaveBeenCalled();
+    });
+
+    it('Cancel closes the dialog without printing', async () => {
+      const gw = await newGrooveWriter();
+      buildGridDOM(gw, 1);
       const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
 
       gw.printMusic();
+      document.querySelector('#benDetailsDialog .ben-dlg-cancel').click();
 
-      expect(printSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it('for Chrome on windows, opens a dedicated print window, injects the sheet-music SVG, and calls win.print()', async () => {
-      const gw = await newGrooveWriter();
-      buildGridDOM(gw, 1);
-      gw.browserInfo = { browser: 'Chrome', platform: 'windows' };
-      const svgTarget = document.createElement('div');
-      svgTarget.id = 'svgTarget';
-      svgTarget.innerHTML = '<svg>MYSVG</svg>';
-      document.body.appendChild(svgTarget);
-      const fakeWin = { document: { body: {} }, print: vi.fn() };
-      const openSpy = vi.spyOn(window, 'open').mockImplementation(() => fakeWin);
-
-      gw.printMusic();
-
-      expect(openSpy).toHaveBeenCalledWith('', 'Groove Scribe Print');
-      expect(fakeWin.document.body.innerHTML).toContain('<title>Groove Scribe</title>');
-      expect(fakeWin.document.body.innerHTML).toContain('<svg>MYSVG</svg>');
-      expect(fakeWin.print).toHaveBeenCalledTimes(1);
-    });
-
-    it('throws if window.open returns null/is blocked by a popup blocker (no null-guard in the source)', async () => {
-      const gw = await newGrooveWriter();
-      buildGridDOM(gw, 1);
-      gw.browserInfo = { browser: 'Chrome', platform: 'windows' };
-      const svgTarget = document.createElement('div');
-      svgTarget.id = 'svgTarget';
-      svgTarget.innerHTML = '<svg>MYSVG</svg>';
-      document.body.appendChild(svgTarget);
-      vi.spyOn(window, 'open').mockImplementation(() => null);
-
-      expect(() => gw.printMusic()).toThrow(TypeError);
+      expect(document.getElementById('benDetailsDialog').style.display).toBe('none');
+      expect(printSpy).not.toHaveBeenCalled();
     });
   });
 

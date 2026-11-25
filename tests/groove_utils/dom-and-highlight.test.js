@@ -574,7 +574,7 @@ describe('GrooveUtils.loadFullScreenGrooveScribe', () => {
     expect(() => gu.loadFullScreenGrooveScribe()).toThrow(/debugMode/);
   });
 
-  it('opens a new tab with the full GrooveScribe URL and focuses it, given a real groove data object', () => {
+  it("opens a new tab with this app's full editor URL and focuses it, given a real groove data object", () => {
     const grooveData = {};
     gu.grooveDataNew.call(grooveData); // construct a proper instance manually
     gu.myGrooveData = grooveData;
@@ -586,7 +586,10 @@ describe('GrooveUtils.loadFullScreenGrooveScribe', () => {
 
     expect(openSpy).toHaveBeenCalledTimes(1);
     const [url, target] = openSpy.mock.calls[0];
-    expect(url).toContain('https://www.mikeslessons.com/gscribe');
+    // Drumsheet: the app's own editor (the folder above js/), not the original Groove Scribe site
+    expect(url).not.toContain('mikeslessons.com');
+    expect(url).toContain('TimeSig=');
+    expect(url.split('?')[0]).not.toMatch(/\/js\/?$/);
     expect(target).toBe('_blank');
     expect(focusSpy).toHaveBeenCalledTimes(1);
   });

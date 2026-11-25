@@ -27,7 +27,13 @@ re-expose the public API on `window` for the inline HTML event handlers.
 
 Tests run in a **jsdom** environment (see `vitest.config.js`) because the source
 touches `window`, `document`, and `window.location`. `tests/setup.js` polyfills
-the few browser APIs jsdom lacks (`matchMedia`, `scrollTo`).
+the few browser APIs jsdom lacks (`matchMedia`, `scrollTo`), gives every test an
+idle `MIDI` player (the page always loads MIDI.js), and cancels timeouts a test
+file leaves behind so they cannot fire after its jsdom page is gone.
+
+The suite runs on every push and pull request (`.github/workflows/tests.yml`).
+When the app changes on purpose, update the test that pinned the old behaviour
+in the same commit, with a short comment saying what changed.
 
 ## Layout
 

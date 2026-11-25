@@ -80,14 +80,29 @@ describe('addMeasureButtonClick / closeMeasureButtonClick', () => {
     gw.displayNewSVG = vi.fn();
   });
 
+  // Drumsheet: "+" opens a small menu (copy of the last bar / empty bar / cancel); the
+  // choice then goes through addBar(). Removing goes through deleteBar().
+  it('"+" opens the add-bar menu (copy, empty, cancel) without adding a bar yet', () => {
+    gw.addMeasureButtonClick({});
+
+    const menu = document.getElementById('benAddBarMenu');
+    expect(menu).toBeTruthy();
+    expect(Array.from(menu.querySelectorAll('button')).map((b) => b.textContent.trim())).toEqual([
+      'Copy of last bar',
+      'Empty bar',
+      'Cancel',
+    ]);
+    expect(gw.numberOfMeasures()).toBe(1);
+  });
+
   it('adds a measure and grows the grid', () => {
     expect(gw.numberOfMeasures()).toBe(1);
 
     gw.addMeasureButtonClick({});
+    gw.addBar('copy');
 
+    expect(document.getElementById('benAddBarMenu')).toBeNull(); // the menu closes
     expect(gw.numberOfMeasures()).toBe(2);
-    // addMeasureButtonClick rewrites #measureContainer's innerHTML (via
-    // changeDivisionWithNotes) with one .staff-container per measure.
     expect(
       document.getElementById('measureContainer').querySelectorAll('.staff-container')
     ).toHaveLength(2);
@@ -97,27 +112,33 @@ describe('addMeasureButtonClick / closeMeasureButtonClick', () => {
     expect(gd.hh_array).toHaveLength(2 * gw.notesPerMeasure()); // 32 notes for 2 measures of 16ths
   });
 
-  it("copies the last measure's notes into the new measure, and preserves existing notes", () => {
+  it('"Copy of last bar" copies its notes into the new bar, and keeps the existing notes', () => {
     // Turn kick on at note 0 of measure 1 (off -> "normal" on the first click).
     gw.noteLeftClick(null, 'kick', 0);
     expect(gw.grooveDataFromClickableUI().kick_array[0]).toBe('F'); // constant_ABC_KI_Normal
 
-    gw.addMeasureButtonClick({});
+    gw.addBar('copy');
 
     const gd = gw.grooveDataFromClickableUI();
-    // measure 1's note is preserved...
-    expect(gd.kick_array[0]).toBe('F');
-    // ...and the new measure (indices 16-31) starts as a copy of the last
-    // measure that existed before the add, per the "copy the notes from the
-    // last measure to the new measure" comment on addMeasureButtonClick.
-    expect(gd.kick_array[gw.notesPerMeasure()]).toBe('F');
-    // a note that was never turned on stays off in both measures.
+    expect(gd.kick_array[0]).toBe('F'); // measure 1 is kept
+    expect(gd.kick_array[gw.notesPerMeasure()]).toBe('F'); // measure 2 is a copy of it
     expect(gd.kick_array[1]).toBe(false);
     expect(gd.kick_array[gw.notesPerMeasure() + 1]).toBe(false);
   });
 
+  it('"Empty bar" adds a bar without notes', () => {
+    gw.noteLeftClick(null, 'kick', 0);
+
+    gw.addBar('empty');
+
+    const gd = gw.grooveDataFromClickableUI();
+    expect(gw.numberOfMeasures()).toBe(2);
+    expect(gd.kick_array[0]).toBe('F');
+    expect(gd.kick_array[gw.notesPerMeasure()]).toBe(false);
+  });
+
   it('removes a measure', () => {
-    gw.addMeasureButtonClick({}); // 1 -> 2, so there's something to remove
+    gw.addBar('copy'); // 1 -> 2, so there's something to remove
     expect(gw.numberOfMeasures()).toBe(2);
 
     gw.closeMeasureButtonClick(2); // 1-indexed: remove the 2nd measure
@@ -129,21 +150,16 @@ describe('addMeasureButtonClick / closeMeasureButtonClick', () => {
     expect(gw.grooveDataFromClickableUI().hh_array).toHaveLength(gw.notesPerMeasure());
   });
 
-  // BUG (observed, not asserting it's desirable): closeMeasureButtonClick has no
-  // lower-bound guard. The "remove measure" button is only *rendered* when
-  // numberOfMeasures() > 1 (see HTMLforStaffContainer), so normal UI use can't
-  // reach this path -- but the function itself will happily decrement a
-  // 1-measure groove to 0 measures. changeDivisionWithNotes then rewrites
-  // #measureContainer to an empty string (the "for measure = 1; measure <= 0"
-  // loop body never runs), and the very next updateSheetMusic() call throws
-  // because it reads notes from DOM ids (hh0, kick0, ...) that no longer exist.
-  it('has no lower-bound guard: closing the last measure corrupts state and throws on the next redraw', () => {
+  // Groove Scribe had no lower-bound guard here: closing the only measure left 0 measures
+  // and the next redraw threw. Drumsheet clears that bar instead.
+  it('closing the only measure clears it instead of removing it', () => {
+    gw.noteLeftClick(null, 'kick', 0);
     expect(gw.numberOfMeasures()).toBe(1);
 
-    expect(() => gw.closeMeasureButtonClick(1)).toThrow();
+    expect(() => gw.closeMeasureButtonClick(1)).not.toThrow();
 
-    // class_number_of_measures was already decremented to 0 before the throw.
-    expect(gw.numberOfMeasures()).toBe(0);
+    expect(gw.numberOfMeasures()).toBe(1);
+    expect(gw.grooveDataFromClickableUI().kick_array[0]).toBe(false);
   });
 });
 

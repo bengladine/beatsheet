@@ -387,14 +387,15 @@ describe('GrooveWriter core state & undo/redo', () => {
       expect(gw.notesPerMeasure()).toBe(12);
     });
 
-    it('newDivision=48 (MIXED subdivision) shows a one-time informational alert() but still applies the change', () => {
+    // Groove Scribe showed a one-time "MIXED subdivision" alert here. Drumsheet's per-beat
+    // grid makes 48 an ordinary grid (it is what mixed 1/16 + triplet beats use), so no alert.
+    it('newDivision=48 applies the change without an alert', () => {
       const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
       gw.changeDivision(48);
 
-      expect(alertSpy).toHaveBeenCalledTimes(1);
-      expect(alertSpy.mock.calls[0][0]).toMatch(/MIXED subdivision/);
-      expect(gw.notesPerMeasure()).toBe(48); // the alert is informational only; it does not reject the change
+      expect(alertSpy).not.toHaveBeenCalled();
+      expect(gw.notesPerMeasure()).toBe(48);
 
       alertSpy.mockRestore();
     });
@@ -432,16 +433,19 @@ describe('GrooveWriter core state & undo/redo', () => {
       expect(gw.myGrooveUtils.swingIsEnabled).toBe(false);
     });
 
-    it('preserves existing note state across a non-triplet -> non-triplet change, but resets to defaults across a triplet transition', () => {
+    // Groove Scribe reset to the default groove whenever the grid switched between straight
+    // and triplets. Drumsheet keeps every note that still fits the new grid, both ways.
+    it('preserves note state across grid changes, including straight <-> triplet, when the notes fit', () => {
       gw.stickingsShowHide(true, true, true);
       gw.noteLeftClick(null, 'sticking', 0); // -> "right"
       expect(gw.grooveDataFromClickableUI().sticking_array[0]).toBe('"R"x');
 
-      gw.changeDivision(8); // 16ths(non-triplet) -> 8ths(non-triplet): usingTriplets() unchanged -> notes preserved
+      gw.changeDivision(8); // 16ths -> 8ths: a note on the beat fits
       expect(gw.grooveDataFromClickableUI().sticking_array[0]).toBe('"R"x');
 
-      gw.changeDivision(12); // 8ths(non-triplet) -> 12(triplet): usingTriplets() flips -> resets to the default groove
-      expect(gw.grooveDataFromClickableUI().sticking_array[0]).toBe('""x'); // constant_ABC_STICK_OFF
+      gw.changeDivision(12); // 8ths -> 8th-note triplets: still on the beat, still kept
+      expect(gw.notesPerMeasure()).toBe(12);
+      expect(gw.grooveDataFromClickableUI().sticking_array[0]).toBe('"R"x');
     });
   });
 });

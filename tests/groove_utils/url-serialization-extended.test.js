@@ -133,10 +133,11 @@ describe('GrooveUtils URL serialization (extended)', () => {
       }
     });
 
-    it('clamps values above constant_MAX_MEASURES (10) down to 10', () => {
+    // Drumsheet raised the limit from 10 to 64 bars (longer grooves used to be cut off when shared)
+    it('clamps values above constant_MAX_MEASURES (64) down to 64', () => {
       const gd = gu.getGrooveDataFromUrlString('?TimeSig=4/4&Div=16&Measures=999');
-      expect(gd.numberOfMeasures).toBe(10);
-      expect(gd.hh_array).toHaveLength(160);
+      expect(gd.numberOfMeasures).toBe(64);
+      expect(gd.hh_array).toHaveLength(64 * 16);
     });
 
     it('defaults to 1 measure when the param is absent', () => {
@@ -260,18 +261,17 @@ describe('GrooveUtils URL serialization (extended)', () => {
       }
     });
 
-    // Quirk: only T1 and T4 are ever re-serialized by getUrlStringFromGrooveData,
-    // even if showToms became true because of a T2/T3 param. T2/T3 data is
-    // effectively unrecoverable from a round trip today.
-    it('re-serializes only T1 and T4, never T2/T3, even when showToms is true', () => {
+    // Groove Scribe only wrote T1 and T4 back out, so T2/T3 were lost on a round trip.
+    // Drumsheet writes all four toms.
+    it('re-serializes all four toms (T1-T4) when showToms is true', () => {
       const gd = gu.getGrooveDataFromUrlString(
         '?TimeSig=4/4&Div=16&T1=|o---------------|&T2=|o---------------|&T3=|o---------------|&T4=|o---------------|'
       );
       const out = gu.getUrlStringFromGrooveData(gd);
       expect(out).toContain('T1=|o---------------|');
       expect(out).toContain('T4=|o---------------|');
-      expect(out).not.toContain('T2=');
-      expect(out).not.toContain('T3=');
+      expect(out).toContain('T2=|o---------------|');
+      expect(out).toContain('T3=|o---------------|');
     });
 
     it('is not written to the URL at all when showToms is false', () => {
@@ -484,10 +484,12 @@ describe('GrooveUtils URL serialization (extended)', () => {
       expect(out).toContain('GrooveEmbed.html?');
     });
 
-    it('"fullGrooveScribe" replaces the whole origin+path with the hardcoded external URL', () => {
+    it('"fullGrooveScribe" points at this app\'s own editor (the folder above js/), not an external site', () => {
       const gd = gu.getGrooveDataFromUrlString('?TimeSig=4/4&Div=16');
       const out = gu.getUrlStringFromGrooveData(gd, 'fullGrooveScribe');
-      expect(out.startsWith('https://www.mikeslessons.com/gscribe?')).toBe(true);
+      expect(out).not.toContain('mikeslessons.com');
+      expect(out).toContain('TimeSig=4/4');
+      expect(out.split('?')[0]).not.toMatch(/\/js\/?$/);
     });
 
     it('an unrecognized destination string falls through unchanged, same as no destination', () => {

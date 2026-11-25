@@ -358,7 +358,9 @@ describe('GrooveUtils MIDI player HTML & base locations', () => {
     it('getGrooveUtilsBaseLocation derives the app root from the module URL', () => {
       const base = gu.getGrooveUtilsBaseLocation();
       expect(base.endsWith('/')).toBe(true);
-      expect(base.endsWith('GrooveScribe/')).toBe(true);
+      // the app root: the folder that holds js/ (whatever the checkout folder is called)
+      expect(base.endsWith('/js/')).toBe(false);
+      expect(new URL('js/groove_utils.js', base).href.endsWith('/js/groove_utils.js')).toBe(true);
       // No longer the dead hardcoded Google Drive fallback.
       expect(base).not.toContain('googledrive.com');
     });

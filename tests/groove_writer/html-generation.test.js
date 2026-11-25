@@ -189,13 +189,14 @@ describe('HTMLforStaffContainer', () => {
   });
 
   describe('measure count affects the close/add-measure buttons (class_number_of_measures > 1)', () => {
-    it('after a real addMeasureButtonClick(), measure 1 gets a clickable close button and measure 2 gets the add button', async () => {
+    it('after adding a bar (the "+" menu\'s addBar), measure 1 gets a clickable close button and measure 2 gets the add button', async () => {
       document.body.innerHTML = '';
       gw = await newGrooveWriter();
       scaffoldForStateMutatingCalls(gw);
 
       expect(gw.numberOfMeasures()).toBe(1);
-      swallowingKnownHarnessGap(() => gw.addMeasureButtonClick());
+      // Drumsheet: "+" (addMeasureButtonClick) only opens a menu; its choice calls addBar()
+      swallowingKnownHarnessGap(() => gw.addBar('copy'));
       expect(gw.numberOfMeasures()).toBe(2); // the state mutation we care about did happen
 
       const html1 = gw.HTMLforStaffContainer(1, 0);

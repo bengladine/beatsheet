@@ -46,7 +46,11 @@ describe('AddGrooveDisplayToElementId', () => {
     GD.AddGrooveDisplayToElementId('host', DEF, false, true, false);
     const anchor = host.querySelector('.svgTarget a');
     expect(anchor).toBeTruthy();
-    expect(anchor.getAttribute('href')).toBe('http://mikeslessons.com/gscribe/' + DEF);
+    // Drumsheet: the link opens this app's own editor (the folder above js/), wherever it is hosted
+    const href = anchor.getAttribute('href');
+    expect(href.endsWith(DEF)).toBe(true);
+    expect(href).not.toContain('mikeslessons.com');
+    expect(href).not.toContain('/js/');
   });
 
   it('renders a bare SVG (no link) when linkToEditor is false', () => {

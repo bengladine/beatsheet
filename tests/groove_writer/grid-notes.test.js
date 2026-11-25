@@ -148,16 +148,13 @@ describe('GrooveWriter clickable grid: grooveDataFromClickableUI', () => {
     expect(gd.kick_array.every((v) => v === false)).toBe(true);
   });
 
-  it('toms_array is a 4-slot array but only index 0 (tom1) and 3 (tom4) are ever populated', () => {
-    // Quirk: toms_array is declared as [[],[],[],[]] (one slot per rack/floor
-    // tom) but the writer only ever reads/writes tom1 and tom4 (see
-    // set_tom1_state/set_tom4_state) -- indices 1 and 2 are permanently empty.
+  it('toms_array has one full-length slot for each of the 4 toms', () => {
+    // Groove Scribe only ever filled tom1 and tom4 (indices 1 and 2 stayed empty);
+    // Drumsheet reads all four toms.
     const gd = gw.grooveDataFromClickableUI();
+    const len = gw.notesPerMeasure() * gw.numberOfMeasures();
     expect(gd.toms_array).toHaveLength(4);
-    expect(gd.toms_array[1]).toEqual([]);
-    expect(gd.toms_array[2]).toEqual([]);
-    expect(gd.toms_array[0]).toHaveLength(gw.notesPerMeasure() * gw.numberOfMeasures());
-    expect(gd.toms_array[3]).toHaveLength(gw.notesPerMeasure() * gw.numberOfMeasures());
+    gd.toms_array.forEach((tom) => expect(tom).toHaveLength(len));
   });
 
   it('showStickings/showToms default to false, and sticking_array is only populated when stickings are shown', () => {
@@ -243,17 +240,38 @@ describe('GrooveWriter clickable grid: noteLeftClick', () => {
   });
 });
 
+// jsdom lays nothing out, so every menu measures 0x0 at (0,0) and the app's
+// "keep menus on screen" step would always move it to 8px. Give the menu a real
+// 120x160 box at wherever its style puts it.
+function giveMenuASize(menu) {
+  menu.getBoundingClientRect = () => {
+    const left = parseFloat(menu.style.left) || 0;
+    const top = parseFloat(menu.style.top) || 0;
+    return { left, top, width: 120, height: 160, right: left + 120, bottom: top + 160, x: left, y: top };
+  };
+}
+
 describe('GrooveWriter clickable grid: noteRightClick / notePopupClick', () => {
   it('noteRightClick opens the matching context menu and records which note was clicked', () => {
-    const ev = { clientX: 10, clientY: 20, preventDefault() {}, stopPropagation() {} };
+    const menu = document.getElementById('hhContextMenu');
+    giveMenuASize(menu);
+    const ev = { clientX: 300, clientY: 200, preventDefault() {}, stopPropagation() {} };
     const returnedError = gw.noteRightClick(ev, 'hh', 3);
     expect(returnedError).toBe(false); // false == "handled ok", per the function's own doc comment
 
-    const menu = document.getElementById('hhContextMenu');
     expect(menu.style.display).toBe('block');
     // Positioned relative to the click, offset -75px on X (vs. -35px for label menus).
-    expect(menu.style.top).toBe(`${20 - 30}px`);
-    expect(menu.style.left).toBe(`${10 - 75}px`);
+    expect(menu.style.top).toBe(`${200 - 30}px`);
+    expect(menu.style.left).toBe(`${300 - 75}px`);
+  });
+
+  it('noteRightClick near the screen edge keeps the menu on screen (8px margin)', () => {
+    // Drumsheet: menus that would open past the edge (phones) are moved back inside.
+    const menu = document.getElementById('hhContextMenu');
+    giveMenuASize(menu);
+    gw.noteRightClick({ clientX: 10, clientY: 20, preventDefault() {}, stopPropagation() {} }, 'hh', 3);
+    expect(menu.style.top).toBe('8px');
+    expect(menu.style.left).toBe('8px');
   });
 
   it('noteRightClick returns true (error) for an unknown note type (no matching context menu)', () => {
@@ -325,11 +343,12 @@ describe('GrooveWriter clickable grid: noteLabelClick / noteLabelPopupClick', ()
   const evAt = (x, y) => ({ clientX: x, clientY: y, preventDefault() {}, stopPropagation() {} });
 
   it('noteLabelClick opens the label context menu for the given instrument', () => {
-    gw.noteLabelClick(evAt(15, 25), 'hh', 1);
     const menu = document.getElementById('hhLabelContextMenu');
+    giveMenuASize(menu);
+    gw.noteLabelClick(evAt(300, 200), 'hh', 1);
     expect(menu.style.display).toBe('block');
     // Label-menu offset is -35px on X (vs. -75px for per-note right-click menus).
-    expect(menu.style.left).toBe(`${15 - 35}px`);
+    expect(menu.style.left).toBe(`${300 - 35}px`);
   });
 
   it('"all_on" turns every note of the measure on (hh -> normal)', () => {
