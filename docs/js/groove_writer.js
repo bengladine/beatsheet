@@ -24,8 +24,8 @@
 // GrooveUtils and the drum-notation / MIDI constants come from groove_utils.js.
 // Vendored libraries (Midi, MIDI, Pablo, ShareButton) remain window globals
 // provided by the classic <script> tags loaded before this module.
-import { addInlineMeter, barFraction, chooseBaseMeter } from './meters.js?v=1795615143';
-import { GrooveUtils } from './groove_utils.js?v=1795615143';
+import { addInlineMeter, barFraction, chooseBaseMeter } from './meters.js?v=1795626119';
+import { GrooveUtils } from './groove_utils.js?v=1795626119';
 import {
   constant_ABC_HH_Accent,
   constant_ABC_HH_Close,
@@ -87,10 +87,10 @@ import {
   constant_sticking_left_on_color_rgb,
   constant_sticking_both_on_color_rgb,
   constant_sticking_count_on_color_rgb,
-} from './constants.js?v=1795615143';
-import * as _perm from './permutations.js?v=1795615143';
-import * as _view from './viewHtml.js?v=1795615143';
-import * as _grid from './gridState.js?v=1795615143';
+} from './constants.js?v=1795626119';
+import * as _perm from './permutations.js?v=1795626119';
+import * as _view from './viewHtml.js?v=1795626119';
+import * as _grid from './gridState.js?v=1795626119';
 
 // GrooveWriter class.   The only one in this file.
 
@@ -2026,6 +2026,9 @@ function GrooveWriter() {
     myGrooveData.metronomeFrequency = root.getMetronomeFrequency();
     myGrooveData.kickStemsUp = true;
 
+    // Ben: ask once, not for every note (each check searches the whole page)
+    var stickingsVisible = isStickingsVisible();
+    var tomsVisible = isTomsVisible();
     for (var i = 0; i < class_number_of_measures; i++) {
       var total_notes = class_notes_per_measure * class_number_of_measures;
       myGrooveData.sticking_array = [];
@@ -2037,13 +2040,13 @@ function GrooveWriter() {
       // query the clickable UI and generate a arrays representing the notes of all measures
       for (i = 0; i < total_notes; i++) {
         // only grab the stickings if they are visible
-        if (isStickingsVisible()) myGrooveData.sticking_array.push(get_sticking_state(i, 'ABC'));
+        if (stickingsVisible) myGrooveData.sticking_array.push(get_sticking_state(i, 'ABC'));
 
         myGrooveData.hh_array.push(get_hh_state(i, 'ABC'));
         myGrooveData.snare_array.push(get_snare_state(i, 'ABC'));
         myGrooveData.kick_array.push(get_kick_state(i, 'ABC'));
 
-        if (isTomsVisible()) {
+        if (tomsVisible) {
           myGrooveData.toms_array[0].push(get_tom_state(i, 1, 'ABC'));
           myGrooveData.toms_array[1].push(get_tom_state(i, 2, 'ABC'));
           myGrooveData.toms_array[2].push(get_tom_state(i, 3, 'ABC'));
@@ -2085,11 +2088,12 @@ function GrooveWriter() {
   // }}
   //
   root.updateGrooveDBSource = function () {
-    if (
-      !document.getElementById('GrooveDB_source') ||
-      document.getElementById('GrooveDB_source').style.display == 'none'
-    )
-      return; // nothing to update
+    var dbSource = document.getElementById('GrooveDB_source');
+    if (!dbSource || dbSource.style.display == 'none') return; // nothing to update
+    // Ben: also skip it while its section is hidden (it always is, outside GrooveDB authoring,
+    // whose stylesheet shows it): building it reads the whole grid again
+    var dbBox = dbSource.closest('#GrooveDB_MetaData');
+    if (dbBox && getComputedStyle(dbBox).display == 'none') return;
 
     var myGrooveData = root.grooveDataFromClickableUI();
 
@@ -3078,6 +3082,7 @@ function GrooveWriter() {
       }
 
       hilight_note(note_type, percent_complete);
+      playClockNote(note_type, percent_complete);
     };
 
     root.myGrooveUtils.oneTimeInitializeMidi();
@@ -4239,7 +4244,9 @@ function GrooveWriter() {
   }
 
   // returns '' on success, otherwise a message why it can't be done
-  function writeBars(bars, newDiv) {
+  // fast: the bars only changed order (or notes) on the same grid, so the editor's cards are kept
+  // and just get their notes rewritten instead of being built again (much quicker on phones)
+  function writeBars(bars, newDiv, fast) {
     newDiv = parseInt(newDiv, 10);
     var meters = bars.map((b) => b.meter);
     var base = chooseBaseMeter(meters);
@@ -4270,6 +4277,9 @@ function GrooveWriter() {
       }
     }
     // commit
+    var sameGrid =
+      newDiv == parseInt(class_time_division, 10) && bars.length == class_number_of_measures && npm == class_notes_per_measure &&
+      !!document.getElementById('staff-container' + bars.length);
     class_num_beats_per_measure = base[0];
     class_note_value_per_measure = base[1];
     class_number_of_measures = bars.length;
@@ -4281,24 +4291,42 @@ function GrooveWriter() {
       if (bar.loop) class_loop_bars[m] = true;
     });
     if (class_play_from !== null && class_play_from >= bars.length) class_play_from = null;
+    if (fast && sameGrid) {
+      restoreCardOrder();
+      class_sheet_redraw_pending = true;
+      try {
+        BAR_INSTRUMENTS.forEach(function (inst) {
+          setNotesFromURLData(inst, strings[inst], class_number_of_measures);
+        });
+        applyGridVisibility();
+      } finally {
+        class_sheet_redraw_pending = false;
+      }
+      return '';
+    }
     root.expandAuthoringViewWhenNecessary(npm, class_number_of_measures);
-    changeDivisionWithNotes(
-      newDiv,
-      strings.Stickings,
-      strings.H,
-      strings.T1,
-      strings.T4,
-      strings.S,
-      strings.K,
-      strings.T2,
-      strings.T3
-    );
+    class_sheet_redraw_pending = true; // the caller redraws the sheet (and its overlay) right after
+    try {
+      changeDivisionWithNotes(
+        newDiv,
+        strings.Stickings,
+        strings.H,
+        strings.T1,
+        strings.T4,
+        strings.S,
+        strings.K,
+        strings.T2,
+        strings.T3
+      );
+    } finally {
+      class_sheet_redraw_pending = false;
+    }
     root.setTimeSigLabel && root.setTimeSigLabel();
     return '';
   }
 
-  function commitBars(bars, newDiv) {
-    var err = writeBars(bars, newDiv === undefined ? class_time_division : newDiv);
+  function commitBars(bars, newDiv, fast) {
+    var err = writeBars(bars, newDiv === undefined ? class_time_division : newDiv, fast);
     if (err) {
       alert(err);
       applyGridVisibility();
@@ -4328,11 +4356,13 @@ function GrooveWriter() {
     var perBeat = perBeatSupported();
     for (var m = 0; m < class_number_of_measures; m++) {
       var cells = usedCells(m);
+      var levels = {}; // beatLevel reads the beat's notes: once per beat, not once per cell
       for (var j = 0; j < npm; j++) {
         var idx = m * npm + j;
         var show = j < cells;
         if (show && perBeat) {
-          var level = beatLevel(m, Math.floor(j / cpq));
+          var bt = Math.floor(j / cpq);
+          var level = levels[bt] || (levels[bt] = beatLevel(m, bt));
           show = (j % cpq) % (cpq / LEVEL_CELLS[level]) === 0;
         }
         for (var p = 0; p < CELL_ID_PREFIXES.length; p++) {
@@ -4354,7 +4384,7 @@ function GrooveWriter() {
     }
     // the crash/ride rows copy their cell visibility from the hi-hat row
     if (document.querySelector('.ben-ride-container')) renderRideRows();
-    renderSheetOverlay();
+    if (!class_sheet_redraw_pending) renderSheetOverlay();
     fitBarsToScreen();
     updateTripletMetronomeButtons();
   }
@@ -4377,47 +4407,54 @@ function GrooveWriter() {
     var plus = document.getElementById('addMeasureButton');
     var mc = document.getElementById('measureContainer');
     if (plus && mc && plus.parentNode !== mc) mc.appendChild(plus);
-    if (plus) {
-      // sits right next to the last bar (same grid cell, pushed past the card)
-      var lastCard = document.getElementById('staff-container' + class_number_of_measures);
-      plus.style.gridRow = String(Math.max(1, class_number_of_measures));
-      plus.style.gridColumn = phone ? '' : '1';
-      plus.style.marginLeft = !phone && lastCard ? lastCard.offsetWidth + 16 + 'px' : '';
-    }
+    var items = [];
     for (var m = 0; m < class_number_of_measures; m++) {
       var card = document.getElementById('staff-container' + (m + 1));
       var grid = card && card.querySelector('.notes-row-container');
-      if (!grid) continue;
-      card.style.gridRow = phone ? '' : String(m + 1); // explicit rows so the "+" can share the last one
-      grid.style.zoom = '';
-      card.style.setProperty('--ben-z', 1);
+      if (grid) items.push({ card: card, grid: grid });
+    }
+    // 1. reset (writes only)
+    if (plus) {
+      plus.style.gridRow = String(Math.max(1, class_number_of_measures));
+      plus.style.gridColumn = phone ? '' : '1';
+    }
+    items.forEach(function (it, m) {
+      it.card.style.gridRow = phone ? '' : String(m + 1); // explicit rows so the "+" can share the last one
+      it.grid.style.zoom = '';
+      it.card.style.width = '';
+      if (phone) it.card.style.setProperty('--ben-z', 1);
+      else it.card.style.removeProperty('--ben-z');
+    });
+    // 2. measure (reads only: one layout for all bars)
+    var room = (mc ? mc.clientWidth : window.innerWidth) - 110;
+    items.forEach(function (it) {
       if (!phone) {
-        card.style.removeProperty('--ben-z');
+        it.want = it.grid.scrollWidth + 28;
+        return;
+      }
+      // measure the grid with a 40px label column, then shrink it to fit
+      var rowEl = it.grid.querySelector('.background-highlight-container') || it.grid.querySelector('.hi-hat-container');
+      it.natural = (rowEl ? rowEl.scrollWidth : it.grid.scrollWidth) + 6;
+      it.avail = it.card.clientWidth - 14 - 38;
+    });
+    // 3. apply (writes only)
+    items.forEach(function (it) {
+      if (!phone) {
         // card as wide as its note grid (min. room for the toolbar), so all bars look tidy;
         // in a narrow column (side-by-side layout) the grid shrinks to fit
-        card.style.width = '';
-        var room = (mc ? mc.clientWidth : window.innerWidth) - 110;
-        var want = grid.scrollWidth + 28;
-        var zz = want > room ? Math.max(0.6, room / want) : 1;
-        if (zz < 1) grid.style.zoom = zz;
-        card.style.width = Math.min(Math.max(want * zz, 520), Math.max(room, 520)) + 'px';
-        continue;
+        var zz = it.want > room ? Math.max(0.6, room / it.want) : 1;
+        if (zz < 1) it.grid.style.zoom = zz;
+        it.card.style.width = Math.min(Math.max(it.want * zz, 520), Math.max(room, 520)) + 'px';
+        return;
       }
-      card.style.width = '';
-      // measure the grid with a 40px label column, then shrink it to fit
-      var labels = grid.querySelector('.line-labels');
-      var rowEl = grid.querySelector('.background-highlight-container') || grid.querySelector('.hi-hat-container');
-      var natural = (rowEl ? rowEl.scrollWidth : grid.scrollWidth) + 6;
-      var avail = card.clientWidth - 14 - 38;
-      var z = Math.max(0.55, Math.min(1, avail / natural));
-      grid.style.zoom = z;
-      card.style.setProperty('--ben-z', z);
-      card.classList.toggle("ben-fits", avail / natural >= 0.55);
-    }
+      var z = Math.max(0.55, Math.min(1, it.avail / it.natural));
+      it.grid.style.zoom = z;
+      it.card.style.setProperty('--ben-z', z);
+      it.card.classList.toggle('ben-fits', it.avail / it.natural >= 0.55);
+    });
     // now that the cards have their final width, put the "+" right after the last one
-    var plusBtn = document.getElementById('addMeasureButton');
     var lastBar = document.getElementById('staff-container' + class_number_of_measures);
-    if (plusBtn && lastBar && !phone) plusBtn.style.marginLeft = lastBar.offsetWidth + 16 + 'px';
+    if (plus) plus.style.marginLeft = lastBar && !phone ? lastBar.offsetWidth + 16 + 'px' : '';
   }
   window.addEventListener('resize', function () {
     clearTimeout(fitBarsToScreen._t);
@@ -4443,7 +4480,9 @@ function GrooveWriter() {
     var meter = meterFor(m);
     var tops = [];
     for (var t = 1; t <= 16; t++) tops.push([t, t]);
-    var html = '<span class="ben-bar-label">Bar ' + (m + 1) + '</span>';
+    var html =
+      '<span class="ben-bar-label ben-bar-grip" data-bar="' + m + '" title="Drag to move this bar">' +
+      '<i class="fa fa-bars"></i> Bar ' + (m + 1) + '</span>';
     html +=
       '<span class="ben-meter" title="Time signature of this bar">' +
       selectHTML('myGrooveWriter.setBarMeter(' + m + ', this.value, null)', tops, meter[0]) +
@@ -4753,6 +4792,304 @@ function GrooveWriter() {
     commitBars(bars);
   };
 
+  // Ben: move bar `from` so it lands in front of bar `slot` (slot = number of bars: at the end).
+  // Loop marks and the play-from cursor travel with their bar.
+  root.moveBarTo = function (from, slot) {
+    var n = class_number_of_measures;
+    if (from < 0 || from >= n || slot < 0 || slot > n || slot === from || slot === from + 1) return false;
+    class_bar_stash = {};
+    var bars = readBars();
+    var oldPlayFrom = class_play_from;
+    if (class_play_from !== null && bars[class_play_from]) bars[class_play_from]._playFrom = true;
+    var moved = bars.splice(from, 1)[0];
+    var to = slot > from ? slot - 1 : slot;
+    bars.splice(to, 0, moved);
+    var pf = bars.findIndex((b) => b._playFrom);
+    class_play_from = pf >= 0 ? pf : null;
+    if (!commitBars(bars, undefined, true)) {
+      class_play_from = oldPlayFrom;
+      return false;
+    }
+    var card = document.getElementById('staff-container' + (to + 1));
+    if (card) {
+      card.classList.remove('ben-flash');
+      void card.offsetWidth; // restart the animation
+      card.classList.add('ben-flash');
+    }
+    return true;
+  };
+
+  // ----- editor: drag a bar card by its "Bar N" label -----
+  var class_bar_drag = null;
+
+  // a see-through copy of what is being dragged (ids removed so it never clashes with the real bar)
+  var DRAG_GHOST_SCALE = 0.6;
+  function makeDragGhost(src, w, h) {
+    var ghost = document.createElement('div');
+    ghost.className = 'ben-drag-ghost';
+    var copy = src.cloneNode(true);
+    [copy].concat(Array.prototype.slice.call(copy.querySelectorAll('[id]'))).forEach((el) => el.removeAttribute('id'));
+    copy.classList.remove('ben-dragging', 'ben-flash');
+    copy.style.width = w + 'px';
+    copy.style.margin = '0';
+    ghost.appendChild(copy);
+    ghost.style.width = w + 'px';
+    ghost.style.height = h + 'px';
+    ghost._scale = DRAG_GHOST_SCALE;
+    document.body.appendChild(ghost);
+    return ghost;
+  }
+  function moveDragGhost(ghost, x, y) {
+    if (!ghost) return;
+    ghost.style.transform =
+      'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)' + (ghost._scale && ghost._scale !== 1 ? ' scale(' + ghost._scale + ')' : '');
+  }
+
+  // phones: a light stand-in for the bar (its label + a tiny picture of its notes) instead of a full copy
+  function makeMiniGhost(m) {
+    var ghost = document.createElement('div');
+    ghost.className = 'ben-drag-ghost ben-mini-ghost';
+    var label = document.createElement('div');
+    label.className = 'ben-mini-ghost-label';
+    label.innerHTML = '<i class="fa fa-bars"></i> Bar ' + (m + 1);
+    ghost.appendChild(label);
+    var rows = ['H', 'S', 'K'].concat(['T1', 'T2', 'T3', 'T4'].filter(function (inst) {
+      for (var j = 0; j < usedCells(m); j++) if (noteChar(inst, m * class_notes_per_measure + j) !== '-') return true;
+      return false;
+    }));
+    var cells = usedCells(m);
+    var cw = Math.max(3, Math.min(9, Math.floor(150 / Math.max(1, cells))));
+    var canvas = document.createElement('canvas');
+    var dpr = window.devicePixelRatio || 1;
+    var w = cells * cw;
+    var h = rows.length * 7;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    var ink = getComputedStyle(document.documentElement).getPropertyValue('--ben-ink').trim() || '#111827';
+    rows.forEach(function (inst, r) {
+      for (var j = 0; j < cells; j++) {
+        var on = noteChar(inst, m * class_notes_per_measure + j) !== '-';
+        ctx.globalAlpha = on ? 0.9 : 0.15;
+        ctx.fillStyle = ink;
+        ctx.beginPath();
+        ctx.arc(j * cw + cw / 2, r * 7 + 3.5, on ? Math.min(2.6, cw / 2 - 0.3) : 1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+    ghost.appendChild(canvas);
+    document.body.appendChild(ghost);
+    return ghost;
+  }
+
+  function scrollParentOf(el) {
+    for (var p = el && el.parentElement; p; p = p.parentElement) {
+      var oy = getComputedStyle(p).overflowY;
+      if ((oy == 'auto' || oy == 'scroll') && p.scrollHeight > p.clientHeight) return p;
+    }
+    return document.scrollingElement || document.documentElement;
+  }
+
+  // where the dragged bar would land: {slot, card, after}
+  function barDropSlot(x, y) {
+    var best = null;
+    var bestDist = Infinity;
+    for (var m = 0; m < class_number_of_measures; m++) {
+      var card = document.getElementById('staff-container' + (m + 1));
+      if (!card) continue;
+      var r = card.getBoundingClientRect();
+      var dy = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0;
+      var dx = x < r.left ? r.left - x : x > r.right ? x - r.right : 0;
+      var d = dy * 4 + dx;
+      if (d < bestDist) {
+        bestDist = d;
+        best = { m: m, card: card, rect: r };
+      }
+    }
+    if (!best) return null;
+    var after = y > best.rect.top + best.rect.height / 2;
+    return { slot: best.m + (after ? 1 : 0), rect: best.rect, after: after };
+  }
+
+  function barDragUpdate() {
+    var d = class_bar_drag;
+    if (!d || !d.active) return;
+    var t = barDropSlot(d.x, d.y);
+    var noop = !t || t.slot === d.from || t.slot === d.from + 1;
+    d.slot = noop ? null : t.slot;
+    if (noop) {
+      d.line.style.display = 'none';
+      return;
+    }
+    var r = t.rect;
+    d.line.style.display = '';
+    d.line.style.left = r.left + 'px';
+    d.line.style.width = r.width + 'px';
+    d.line.style.top = (t.after ? r.bottom + 5 : r.top - 7) + 'px';
+  }
+
+  function barDragEnd(drop) {
+    var d = class_bar_drag;
+    class_bar_drag = null;
+    document.removeEventListener('pointermove', barDragMove);
+    document.removeEventListener('pointerup', barDragUp);
+    document.removeEventListener('pointercancel', barDragCancel);
+    if (!d) return;
+    clearInterval(d.timer);
+    if (d.line) d.line.remove();
+    if (d.ghost) d.ghost.remove();
+    if (d.card) d.card.classList.remove('ben-dragging');
+    document.documentElement.classList.remove('ben-bar-dragging');
+    if (drop && d.active && d.slot !== null) {
+      // show the new order at once (just moving the cards), then rebuild everything after that frame is on screen
+      previewBarOrder(d.from, d.slot);
+      afterPaint(function () {
+        root.moveBarTo(d.from, d.slot);
+      });
+    }
+  }
+
+  // run heavy work only after the browser has painted what the user just did
+  function afterPaint(fn) {
+    requestAnimationFrame(function () {
+      setTimeout(fn, 0);
+    });
+  }
+
+  // undo previewBarOrder: cards back in id order (their notes are then rewritten in place)
+  function restoreCardOrder() {
+    var mc = document.getElementById('measureContainer');
+    var plus = document.getElementById('addMeasureButton');
+    if (!mc) return;
+    for (var m = 0; m < class_number_of_measures; m++) {
+      var c = document.getElementById('staff-container' + (m + 1));
+      if (c && c.parentNode === mc) mc.insertBefore(c, plus && plus.parentNode === mc ? plus : null);
+    }
+  }
+
+  // cheap stand-in for a move: put the bar cards in their new order (the real rebuild follows)
+  function previewBarOrder(from, slot) {
+    var mc = document.getElementById('measureContainer');
+    if (!mc) return;
+    var cards = [];
+    for (var m = 0; m < class_number_of_measures; m++) {
+      var c = document.getElementById('staff-container' + (m + 1));
+      if (!c || c.parentNode !== mc) return;
+      cards.push(c);
+    }
+    var moved = cards.splice(from, 1)[0];
+    cards.splice(slot > from ? slot - 1 : slot, 0, moved);
+    var plus = document.getElementById('addMeasureButton');
+    var phone = window.innerWidth <= 720;
+    cards.forEach(function (c, i) {
+      mc.insertBefore(c, plus && plus.parentNode === mc ? plus : null);
+      if (!phone) c.style.gridRow = String(i + 1);
+    });
+  }
+
+  function barDragMove(e) {
+    var d = class_bar_drag;
+    if (!d) return;
+    d.x = e.clientX;
+    d.y = e.clientY;
+    if (!d.active) {
+      if (Math.abs(d.x - d.sx) + Math.abs(d.y - d.sy) < 6) return;
+      barDragActivate(d);
+    }
+    e.preventDefault();
+    moveDragGhost(d.ghost, d.x - d.gx, d.y - d.gy);
+    barDragUpdate();
+  }
+
+  function barDragActivate(d) {
+    if (d.active) return;
+    d.active = true;
+    try {
+      window.getSelection().removeAllRanges();
+    } catch (err) {
+      /* ignore */
+    }
+    d.card = document.getElementById('staff-container' + (d.from + 1));
+    if (d.card) {
+      // a see-through copy of the bar follows the pointer (on touch screens a light mini version)
+      var cr = d.card.getBoundingClientRect();
+      if (d.touch) {
+        d.ghost = makeMiniGhost(d.from);
+        d.gx = 24;
+        d.gy = 18;
+      } else {
+        d.ghost = makeDragGhost(d.card, cr.width, cr.height);
+        d.gx = Math.min(Math.max(d.sx - cr.left, 0), cr.width) * DRAG_GHOST_SCALE;
+        d.gy = Math.min(Math.max(d.sy - cr.top, 0), cr.height) * DRAG_GHOST_SCALE;
+      }
+      moveDragGhost(d.ghost, d.x - d.gx, d.y - d.gy);
+      d.card.classList.add('ben-dragging');
+    }
+    document.documentElement.classList.add('ben-bar-dragging');
+    d.line = document.createElement('div');
+    d.line.className = 'ben-bar-drop-line';
+    document.body.appendChild(d.line);
+    d.scroller = scrollParentOf(d.card);
+    // keep scrolling while the pointer is held near the top / bottom edge
+    d.timer = setInterval(function () {
+      var sc = d.scroller;
+      var isPage = sc === document.scrollingElement || sc === document.documentElement;
+      var top = isPage ? 0 : Math.max(0, sc.getBoundingClientRect().top);
+      var bottom = isPage ? window.innerHeight : Math.min(window.innerHeight, sc.getBoundingClientRect().bottom);
+      var step = d.y < top + 60 ? -14 : d.y > bottom - 60 ? 14 : 0;
+      if (step) {
+        sc.scrollTop += step;
+        barDragUpdate();
+      }
+    }, 30);
+    barDragUpdate();
+  }
+
+  function barDragUp() {
+    barDragEnd(true);
+  }
+
+  function barDragCancel() {
+    barDragEnd(false);
+  }
+
+  // anything in a bar card that does something on click: not a place to start a drag
+  var BAR_DRAG_SKIP =
+    'button, select, input, textarea, label, a, [onclick], .hi-hat, .snare, .kick, .tom, .sticking, ' +
+    '.hh-label, .snare-label, .kick-label, .tom-label, .stickings-label, .ben-ride-label, .closeMeasureButton';
+
+  document.addEventListener('pointerdown', function (e) {
+    var t = e.target;
+    if (!t || !t.closest || (e.button !== undefined && e.button !== 0) || class_number_of_measures < 2) return;
+    var grip = t.closest('.ben-bar-grip');
+    var from;
+    if (grip) {
+      from = parseInt(grip.getAttribute('data-bar'), 10);
+    } else {
+      // mouse / pen: grab the bar on any empty spot of its card (on touch that has to scroll the page)
+      if (e.pointerType === 'touch') return;
+      var card = t.closest('.staff-container');
+      var num = card && card.id.match(/^staff-container(\d+)$/);
+      if (!num || t.closest(BAR_DRAG_SKIP) || getComputedStyle(t).cursor === 'pointer') return;
+      from = parseInt(num[1], 10) - 1;
+    }
+    if (class_bar_drag) barDragEnd(false);
+    class_bar_drag = { from: from, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, active: false, slot: null, touch: e.pointerType === 'touch' };
+    document.addEventListener('pointermove', barDragMove);
+    document.addEventListener('pointerup', barDragUp);
+    document.addEventListener('pointercancel', barDragCancel);
+    if (grip) {
+      e.preventDefault();
+      barDragActivate(class_bar_drag); // the grip picks the bar up straight away
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && class_bar_drag) barDragEnd(false);
+  });
+
   function restartPlaybackIfPlaying(forceStart) {
     var gu = root.myGrooveUtils;
     var wasPlaying = gu.isPlaying && gu.isPlaying();
@@ -4849,7 +5186,7 @@ function GrooveWriter() {
       var x = r.left + r.width / 2 - T.left;
       var left = svg === prevRow ? prevX : S.left - T.left + 8;
       var st = svgTarget.scrollTop;
-      rects.push({ left: left, right: x, top: S.top - T.top + st, bottom: S.bottom - T.top + st });
+      rects.push({ left: left, right: x, top: S.top - T.top + st, bottom: S.bottom - T.top + st, svg: svg, first: svg !== prevRow });
       prevRow = svg;
       prevX = x;
     });
@@ -4872,6 +5209,8 @@ function GrooveWriter() {
   }
 
   var class_sheet_drag = null;
+  var SHEET_HOLD_MS = 300; // touch: how long to hold a bar on the sheet before it can be dragged
+  var class_sheet_redraw_pending = false; // grid being rebuilt: the sheet + overlay are redrawn after
 
   function renderSheetOverlay() {
     var svgTarget = document.getElementById('svgTarget');
@@ -4880,9 +5219,24 @@ function GrooveWriter() {
     if (!layer) {
       layer = document.createElement('div');
       layer.className = 'ben-sheet-layer';
-      layer.title = 'Click a bar to play from there. Drag across bars to loop them.';
+      layer.title = 'Click a bar to play from there. Drag a bar to move it. Use Loop to repeat bars.';
+      // once a bar is being moved, a touch drag moves it instead of scrolling the page
+      layer.addEventListener(
+        'touchmove',
+        function (e) {
+          if (class_sheet_drag && class_sheet_drag.mode == 'move' && e.cancelable) e.preventDefault();
+        },
+        { passive: false }
+      );
       svgTarget.appendChild(layer);
       layer.addEventListener('pointerdown', sheetPointerDown);
+      // a long touch on the sheet opens no phone menu (it picks the bar up instead)
+      layer.addEventListener('pointerdown', function (e) {
+        layer._lastPointer = e.pointerType;
+      }, true);
+      layer.addEventListener('contextmenu', function (e) {
+        if (layer._lastPointer === 'touch' || class_sheet_drag) e.preventDefault();
+      });
       layer.addEventListener('pointermove', sheetPointerMove);
       layer.addEventListener('pointerup', sheetPointerUp);
       layer.addEventListener('pointerleave', function () {
@@ -4890,12 +5244,15 @@ function GrooveWriter() {
         if (hv) hv.style.opacity = '0';
       });
       layer.addEventListener('pointercancel', function () {
+        if (class_sheet_drag) clearTimeout(class_sheet_drag.holdTimer);
+        if (class_sheet_drag && class_sheet_drag.ghost) class_sheet_drag.ghost.remove();
         class_sheet_drag = null;
         renderSheetOverlay();
       });
     }
     var rects = sheetBarRects(svgTarget);
     layer._rects = rects;
+    layer._anchors = {};
     layer.style.height = svgTarget.scrollHeight + 'px';
     updateSheetPin();
     var html = '';
@@ -4912,13 +5269,26 @@ function GrooveWriter() {
       var b = rects[range[1]];
       if (a && b) {
         html += '<div class="ben-sheet-handle" data-handle="start" title="Drag to change where the loop starts" style="left:' +
-          (a.left - 6) + 'px;top:' + a.top + 'px;height:' + (a.bottom - a.top) + 'px"></div>';
+          (a.left - 10) + 'px;top:' + a.top + 'px;height:' + (a.bottom - a.top) + 'px"></div>';
         html += '<div class="ben-sheet-handle" data-handle="end" title="Drag to change where the loop ends" style="left:' +
-          (b.right - 6) + 'px;top:' + b.top + 'px;height:' + (b.bottom - b.top) + 'px"></div>';
+          (b.right - 10) + 'px;top:' + b.top + 'px;height:' + (b.bottom - b.top) + 'px"></div>';
         if (!class_sheet_drag)
           html += '<button class="ben-sheet-loop-off" title="Stop looping" style="left:' + (b.right - 9) + 'px;top:' +
             (b.top - 9) + 'px">&times;</button>';
       }
+    }
+    var mv = class_sheet_drag && class_sheet_drag.mode == 'move' ? class_sheet_drag : null;
+    if (mv) {
+      var pr = rects[mv.from];
+      if (pr)
+        html += '<div class="ben-sheet-picked" style="left:' + pr.left + 'px;top:' + pr.top + 'px;width:' +
+          (pr.right - pr.left) + 'px;height:' + (pr.bottom - pr.top) + 'px"></div>';
+      if (mv.edge && mv.edge.h)
+        html += '<div class="ben-sheet-drop ben-sheet-drop-h" style="left:' + mv.edge.left + 'px;top:' + (mv.edge.y - 2) +
+          'px;width:' + (mv.edge.right - mv.edge.left) + 'px"></div>';
+      else if (mv.edge)
+        html += '<div class="ben-sheet-drop" style="left:' + (mv.edge.x - 2) + 'px;top:' + mv.edge.top + 'px;height:' +
+          (mv.edge.bottom - mv.edge.top) + 'px"></div>';
     }
     var c = class_play_from !== null ? rects[class_play_from] : null;
     if (c)
@@ -4939,9 +5309,80 @@ function GrooveWriter() {
   function layerPoint(e) {
     var layer = e.currentTarget;
     var L = layer.getBoundingClientRect();
-    return { layer: layer, bar: barAtPoint(layer._rects || [], e.clientX - L.left, e.clientY - L.top) };
+    var x = e.clientX - L.left;
+    var y = e.clientY - L.top;
+    return { layer: layer, x: x, y: y, bar: barAtPoint(layer._rects || [], x, y) };
   }
 
+  // sheet: a see-through copy of one bar of the sheet music (a window onto a copy of its line)
+  function makeSheetGhost(layer, m) {
+    var r = layer._rects && layer._rects[m];
+    if (!r || !r.svg) return null;
+    var T = layer.parentNode.getBoundingClientRect();
+    var S = r.svg.getBoundingClientRect();
+    var st = layer.parentNode.scrollTop;
+    var ghost = document.createElement('div');
+    ghost.className = 'ben-drag-ghost ben-sheet-ghost';
+    ghost.style.width = r.right - r.left + 'px';
+    ghost.style.height = r.bottom - r.top + 'px';
+    var copy = r.svg.cloneNode(true);
+    Array.prototype.slice.call(copy.querySelectorAll('[id]')).forEach((el) => el.removeAttribute('id'));
+    copy.removeAttribute('id');
+    // the sheet's own look (e.g. the dark-mode invert) is set by rules that only match inside it
+    var cs = getComputedStyle(r.svg);
+    copy.style.filter = cs.filter;
+    copy.style.color = cs.color;
+    copy.style.fill = cs.fill;
+    ghost.style.background = getComputedStyle(layer.parentNode).backgroundColor;
+    copy.style.position = 'absolute';
+    copy.style.width = S.width + 'px';
+    copy.style.height = S.height + 'px';
+    copy.style.left = -(r.left - (S.left - T.left)) + 'px';
+    copy.style.top = -(r.top - (S.top - T.top + st)) + 'px';
+    ghost.appendChild(copy);
+    document.body.appendChild(ghost);
+    return ghost;
+  }
+
+  // sheet: while a bar is picked up, the gap it would land in (in front of / behind the bar under the pointer)
+  function sheetMoveTarget(d, p) {
+    var rects = p.layer._rects || [];
+    var b = p.bar;
+    var r = rects[b];
+    if (!r) return;
+    var n = rects.length;
+    // a bar that has its line to itself: above / below it decides (the drop line runs between the lines)
+    var alone = r.first && (!rects[b + 1] || rects[b + 1].first);
+    var after;
+    if (p.y < rects[0].top) {
+      b = 0; // above the first line = in front of bar 1
+      after = false;
+    } else if (p.y > rects[n - 1].bottom) {
+      b = n - 1; // below the last line = behind the last bar
+      after = true;
+    } else if (alone) after = p.y > (r.top + r.bottom) / 2;
+    else after = p.x > (r.left + r.right) / 2;
+    r = rects[b];
+    alone = r.first && (!rects[b + 1] || rects[b + 1].first);
+    var slot = b + (after ? 1 : 0);
+    if (slot === d.from || slot === d.from + 1) {
+      d.slot = null;
+      d.edge = null;
+      return;
+    }
+    d.slot = slot;
+    if (alone) {
+      var prev = rects[b - 1];
+      var next = rects[b + 1];
+      var y = after ? (next ? (r.bottom + next.top) / 2 : r.bottom - 3) : prev ? (prev.bottom + r.top) / 2 : r.top + 3;
+      d.edge = { h: true, y: y, left: r.left - 8, right: r.right };
+    } else {
+      d.edge = { x: after ? r.right : r.left, top: r.top, bottom: r.bottom };
+    }
+  }
+
+  // Sheet gestures: click a bar = play from there (or, while looping, stretch the loop to it);
+  // drag a bar = move it in front of / behind another bar; drag a loop edge = change the loop.
   function sheetPointerDown(e) {
     if (e.button !== undefined && e.button !== 0) return;
     var p = layerPoint(e);
@@ -4951,7 +5392,16 @@ function GrooveWriter() {
     if (handle && range) {
       class_sheet_drag = { mode: handle, anchor: handle == 'start' ? range[1] : range[0], range: range.slice(), moved: true };
     } else {
-      class_sheet_drag = { mode: 'new', anchor: p.bar, start: p.bar, range: null, moved: false };
+      var pd = (class_sheet_drag = {
+        mode: 'press', start: p.bar, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, moved: false,
+        touch: e.pointerType === 'touch',
+      });
+      // touch: an up/down swipe must keep scrolling the page, so holding still a moment picks
+      // the bar up (a clear sideways drag picks it up straight away)
+      if (pd.touch && class_number_of_measures > 1)
+        pd.holdTimer = setTimeout(function () {
+          if (class_sheet_drag === pd && pd.mode == 'press') sheetMoveActivate(pd, p.layer);
+        }, SHEET_HOLD_MS);
     }
     try {
       p.layer.setPointerCapture(e.pointerId);
@@ -4979,8 +5429,37 @@ function GrooveWriter() {
     var p = layerPoint(e);
     if (p.bar < 0) return;
     var d = class_sheet_drag;
-    if (d.mode == 'new' && !d.moved && p.bar == d.start) return;
-    d.moved = true;
+    d.x = e.clientX;
+    d.y = e.clientY;
+    var dist = Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy);
+    if (d.mode == 'press') {
+      if (class_number_of_measures < 2) return;
+      if (d.touch) {
+        var dx = Math.abs(e.clientX - d.sx);
+        var dy = Math.abs(e.clientY - d.sy);
+        if (dy > 8 && dy >= dx) {
+          // that is a scroll, not a drag: let the page have it
+          clearTimeout(d.holdTimer);
+          d.mode = 'scroll';
+          return;
+        }
+        if (dx < 12) return;
+      } else if (dist < 3) return; // mouse: the slightest movement starts the move
+      sheetMoveActivate(d, p.layer);
+    }
+    if (d.mode == 'scroll') return;
+    if (d.mode == 'move') {
+      if (dist >= 3) d.dragged = true;
+      moveDragGhost(d.ghost, e.clientX - d.gx, e.clientY - d.gy);
+      var oldSlot = d.slot;
+      sheetMoveTarget(d, p);
+      if (d.slot !== oldSlot || !d.shown) {
+        d.shown = true;
+        renderSheetOverlay();
+      }
+      return;
+    }
+    // dragging a loop edge
     var a = d.anchor;
     var nr = [Math.min(a, p.bar), Math.max(a, p.bar)];
     if (!d.range || nr[0] != d.range[0] || nr[1] != d.range[1]) {
@@ -4989,30 +5468,91 @@ function GrooveWriter() {
     }
   }
 
-  function sheetPointerUp(e) {
+  // pick the pressed bar up: from now on the pointer moves it
+  function sheetMoveActivate(d, layer) {
+    clearTimeout(d.holdTimer);
+    d.mode = 'move';
+    d.moved = true;
+    d.from = d.start;
+    d.slot = null;
+    d.edge = null;
+    d.ghost = makeSheetGhost(layer, d.from);
+    var gr = layer._rects[d.from];
+    var GL = layer.getBoundingClientRect();
+    // a long bar (one per line) is shrunk so the copy does not cover the whole sheet
+    var gs = Math.min(1, 360 / Math.max(1, gr.right - gr.left));
+    if (d.ghost) d.ghost._scale = gs;
+    d.gx = (d.sx - GL.left - gr.left) * gs;
+    d.gy = (d.sy - GL.top - gr.top) * gs;
+    moveDragGhost(d.ghost, d.x - d.gx, d.y - d.gy);
+    if (navigator.vibrate) navigator.vibrate(10);
+    var hv = layer.querySelector('.ben-sheet-hover');
+    if (hv) hv.style.opacity = '0';
+    renderSheetOverlay();
+  }
+
+  function sheetPointerUp() {
     var d = class_sheet_drag;
     class_sheet_drag = null;
     if (!d) return;
-    if (d.moved && d.range) {
+    clearTimeout(d.holdTimer);
+    if (d.ghost) d.ghost.remove();
+    if (d.mode == 'scroll') return; // the finger scrolled the page: not a tap
+    // picked up by the hold but never moved: that was just a tap
+    if (d.mode == 'move' && !d.dragged) {
+      d.mode = 'press';
+      renderSheetOverlay();
+    }
+    if (d.mode == 'move') {
+      renderSheetOverlay(); // drop the drag marks at once
+      if (d.slot !== null) {
+        previewBarOrder(d.from, d.slot);
+        afterPaint(function () {
+          root.moveBarTo(d.from, d.slot);
+        });
+      }
+      return;
+    }
+    if (d.mode == 'start' || d.mode == 'end') {
       setLoopRange(d.range[0], d.range[1]);
       applyGridVisibility();
       restartPlaybackIfPlaying(false);
-    } else if (!d.moved) {
-      // click: move the play cursor to this bar (click it again to go back to the start)
-      class_play_from = class_play_from === d.start ? null : d.start;
-      var card = document.getElementById('staff-container' + (d.start + 1));
-      if (card) {
-        card.scrollIntoView({ block: 'start', behavior: 'smooth' });
-        card.classList.remove('ben-flash');
-        void card.offsetWidth; // restart the animation
-        card.classList.add('ben-flash');
-      }
+      return;
+    }
+    var range = loopRange();
+    if (range) {
+      // looping: a click stretches the loop to that bar (or pulls its end back to it)
+      var m = d.start;
+      if (m < range[0]) setLoopRange(m, range[1]);
+      else setLoopRange(range[0], m);
       applyGridVisibility();
       restartPlaybackIfPlaying(false);
-    } else {
-      renderSheetOverlay();
+      return;
     }
+    // click: move the play cursor to this bar (click it again to go back to the start)
+    class_play_from = class_play_from === d.start ? null : d.start;
+    var card = document.getElementById('staff-container' + (d.start + 1));
+    if (card) {
+      card.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      card.classList.remove('ben-flash');
+      void card.offsetWidth; // restart the animation
+      card.classList.add('ben-flash');
+    }
+    applyGridVisibility();
+    restartPlaybackIfPlaying(false);
   }
+
+  // the sheet's Loop button: start a loop on the play-from bar (or bar 1), or stop looping
+  root.toggleSheetLoop = function () {
+    if (loopRange()) {
+      setLoopRange(null);
+    } else {
+      var m = class_play_from !== null && class_play_from < class_number_of_measures ? class_play_from : 0;
+      setLoopRange(m, m);
+    }
+    applyGridVisibility();
+    restartPlaybackIfPlaying(false);
+  };
 
   window.addEventListener('resize', function () {
     setTimeout(renderSheetOverlay, 300);
@@ -5377,6 +5917,21 @@ function GrooveWriter() {
       };
       div.appendChild(bpl);
     }
+    var lb = document.getElementById('benSheetLoop');
+    if (!lb) {
+      lb = document.createElement('button');
+      lb.id = 'benSheetLoop';
+      lb.onclick = function () {
+        root.toggleSheetLoop();
+      };
+      div.appendChild(lb);
+    }
+    var looping = !!loopRange();
+    lb.className = looping ? 'on' : '';
+    lb.innerHTML = '<i class="fa fa-repeat"></i> ' + (looping ? 'Looping' : 'Loop');
+    lb.title = looping
+      ? 'Click a bar or drag the loop edges to choose which bars repeat. Click here to stop looping.'
+      : 'Repeat bars: starts on the play-from bar, then click another bar or drag the loop edges';
     btn.title = class_sheet_pinned ? 'Sheet stays on screen while you scroll (click to unpin)' : 'Pin the sheet to the top while you scroll';
     btn.innerHTML = '<i class="fa fa-thumb-tack"></i>';
     var h = class_sheet_pinned ? div.offsetHeight : 0;
@@ -5425,7 +5980,7 @@ function GrooveWriter() {
   var MY_KEY = 'benMyGrooves';
   var acct = null; // the account module, loaded only when needed
   function loadAccount() {
-    if (!acct) acct = import('./account.js?v=1795615143');
+    if (!acct) acct = import('./account.js?v=1795626119');
     return acct;
   }
   function localLoad() {
@@ -5924,7 +6479,7 @@ function GrooveWriter() {
       var ok = card.querySelector('.ben-wn-ok');
       if (ok) ok.onclick = close;
     }
-    import('./updates.js?v=1795615143')
+    import('./updates.js?v=1795626119')
       .then(function (m) {
         root.showWhatsNew = function () {
           show(m.UPDATES, true);
@@ -6390,6 +6945,134 @@ function GrooveWriter() {
     for (var i = 0; i <= mapIdx && i < map.length; i++) if (map[i]) real++;
     root.myGrooveUtils.highlightNoteInABCSVGByIndex(real);
   };
+
+  // ---------------------------------------------------------------------
+  // Ben: play clock. The highlights used to move only when a note sounded, so they
+  // stood still over rests. Every note event re-syncs this clock; in between, a
+  // frame loop moves the grid highlight and a playhead line on the sheet.
+  // ---------------------------------------------------------------------
+  var class_play_clock = null; // {pct, wall}: share of the MIDI played at that wall-clock time
+  var class_play_shown = -1;
+  var class_play_raf = 0;
+
+  function playClockSync(pct) {
+    class_play_clock = { pct: pct, wall: performance.now() };
+    if (!class_play_raf) class_play_raf = requestAnimationFrame(playClockTick);
+  }
+
+  function playClockNote(noteType, pct) {
+    if (noteType == 'clear' || pct < 0) playClockStop();
+    else if (noteType != 'complete' && !class_metronome_count_in_is_playing) playClockSync(pct);
+  }
+
+  function playClockStop() {
+    class_play_clock = null;
+    class_play_shown = -1;
+    if (class_play_raf) cancelAnimationFrame(class_play_raf);
+    class_play_raf = 0;
+    var ph = document.querySelector('#svgTarget .ben-sheet-playhead');
+    if (ph) ph.remove();
+  }
+
+  function playClockTick() {
+    class_play_raf = 0;
+    var gu = root.myGrooveUtils;
+    var c = class_play_clock;
+    var end = window.MIDI && MIDI.Player ? MIDI.Player.endTime : 0;
+    if (!c || !end || !(gu.isPlaying && gu.isPlaying()) || class_metronome_count_in_is_playing) {
+      if (!(gu.isPlaying && gu.isPlaying())) playClockStop();
+      else class_play_raf = requestAnimationFrame(playClockTick);
+      return;
+    }
+    var pct = c.pct + (performance.now() - c.wall) / end;
+    if (pct >= 1) pct = gu.shouldMIDIRepeat ? pct % 1 : 0.99999;
+    // small timer jitter must not move the highlight backwards
+    if (pct < class_play_shown && class_play_shown - pct < 0.02) pct = class_play_shown;
+    class_play_shown = pct;
+    hilight_note('clock', pct);
+    gu.highlightNoteInABCSVGFromPercentComplete(pct);
+    updateSheetPlayhead(pct);
+    class_play_raf = requestAnimationFrame(playClockTick);
+  }
+
+  // x positions (in the sheet layer) of the notes of a bar, keyed by their slot, for the playhead
+  function sheetBarAnchors(layer, bar, slots) {
+    layer._anchors = layer._anchors || {};
+    if (layer._anchors[bar]) return layer._anchors[bar];
+    var r = layer._rects && layer._rects[bar];
+    var map = root.myGrooveUtils.note_mapping_array;
+    if (!r || !map) return null;
+    var svgTarget = layer.parentNode;
+    var T = svgTarget.getBoundingClientRect();
+    var start = class_bar_map_start[bar] || 0;
+    var k = -1;
+    for (var i = 0; i < start && i < map.length; i++) if (map[i]) k++;
+    var pts = [];
+    for (var j = 0; j < slots && start + j < map.length; j++) {
+      if (!map[start + j]) continue;
+      k++;
+      var el = svgTarget.querySelector('#abcNoteNum_' + root.myGrooveUtils.grooveUtilsUniqueIndex + '_' + k);
+      if (!el) continue;
+      var er = el.getBoundingClientRect();
+      pts.push([j, er.left + er.width / 2 - T.left]);
+    }
+    // the bar's own edges (a bar at the start of a line begins after the clef / time signature)
+    var left = r.first ? Math.max(r.left, Math.min(r.left + 60, pts.length ? pts[0][1] : r.left + 60)) : r.left + 6;
+    if (!pts.length || pts[0][0] > 0) pts.unshift([0, pts.length ? Math.min(left, pts[0][1]) : left]);
+    pts.push([slots, r.right]);
+    layer._anchors[bar] = pts;
+    return pts;
+  }
+
+  function updateSheetPlayhead(pct) {
+    var layer = document.querySelector('#svgTarget .ben-sheet-layer');
+    if (!layer || class_permutation_type != 'none' || !class_play_timeline.length) return;
+    var pos = timelinePosition(pct);
+    if (!pos) return;
+    var entry = class_play_timeline.find((t) => t.bar === pos.bar);
+    var pts = entry && sheetBarAnchors(layer, pos.bar, entry.slots);
+    var r = layer._rects && layer._rects[pos.bar];
+    if (!pts || !r) return;
+    var x = pts[pts.length - 1][1];
+    for (var i = 0; i < pts.length - 1; i++) {
+      if (pos.slot < pts[i + 1][0]) {
+        var f = (pos.slot - pts[i][0]) / (pts[i + 1][0] - pts[i][0] || 1);
+        x = pts[i][1] + f * (pts[i + 1][1] - pts[i][1]);
+        break;
+      }
+    }
+    var ph = layer.querySelector('.ben-sheet-playhead');
+    if (!ph) {
+      ph = document.createElement('div');
+      ph.className = 'ben-sheet-playhead';
+      layer.appendChild(ph);
+    }
+    ph.style.transform = 'translate(' + (x - 1).toFixed(1) + 'px,' + r.top + 'px)';
+    ph.style.height = r.bottom - r.top + 'px';
+  }
+
+  // re-sync on every note event; start / stop with playback
+  (function () {
+    var gu = root.myGrooveUtils;
+    var origStart = gu.startMIDI_playback;
+    gu.startMIDI_playback = function () {
+      var wasPlaying = gu.isPlaying && gu.isPlaying();
+      var resuming = gu.isMIDIPaused;
+      var ret = origStart.apply(this, arguments);
+      if (!wasPlaying) {
+        if (resuming) class_play_clock = null; // wait for the next note to know where we are
+        else playClockSync(0);
+      }
+      return ret;
+    };
+    var origPause = gu.pauseMIDI_playback;
+    if (origPause)
+      gu.pauseMIDI_playback = function () {
+        var ret = origPause.apply(this, arguments);
+        class_play_clock = null;
+        return ret;
+      };
+  })();
 
   // "+" button: choose between a copy of the last bar or an empty bar
   function closeAddBarMenu() {
