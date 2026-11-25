@@ -1,6 +1,15 @@
 // Drumsheet: "What's new". Add a new entry at the TOP with a higher id when you ship something
-// users should know about. Returning users see entries newer than the last one they closed.
+// users should know about. Each entry is shown once: newer entries than the last one shown.
 export const UPDATES = [
+  {
+    id: 4,
+    date: '25 Nov 2026',
+    items: [
+      '<b>Move bars by dragging:</b> grab a bar by its ≡ handle in the editor, or drag it in the sheet music (on a phone: hold it a moment first), and drop it in front of or behind another bar.',
+      '<b>Loop button</b> on the sheet: tap it, then tap a bar or drag the orange handles to choose which bars repeat.',
+      'The play cursor now keeps moving over rests too.',
+    ],
+  },
   {
     id: 3,
     date: '24 Nov 2026',

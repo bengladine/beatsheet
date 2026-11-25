@@ -24,8 +24,8 @@
 // GrooveUtils and the drum-notation / MIDI constants come from groove_utils.js.
 // Vendored libraries (Midi, MIDI, Pablo, ShareButton) remain window globals
 // provided by the classic <script> tags loaded before this module.
-import { addInlineMeter, barFraction, chooseBaseMeter } from './meters.js?v=1795626119';
-import { GrooveUtils } from './groove_utils.js?v=1795626119';
+import { addInlineMeter, barFraction, chooseBaseMeter } from './meters.js?v=1795626987';
+import { GrooveUtils } from './groove_utils.js?v=1795626987';
 import {
   constant_ABC_HH_Accent,
   constant_ABC_HH_Close,
@@ -87,10 +87,10 @@ import {
   constant_sticking_left_on_color_rgb,
   constant_sticking_both_on_color_rgb,
   constant_sticking_count_on_color_rgb,
-} from './constants.js?v=1795626119';
-import * as _perm from './permutations.js?v=1795626119';
-import * as _view from './viewHtml.js?v=1795626119';
-import * as _grid from './gridState.js?v=1795626119';
+} from './constants.js?v=1795626987';
+import * as _perm from './permutations.js?v=1795626987';
+import * as _view from './viewHtml.js?v=1795626987';
+import * as _grid from './gridState.js?v=1795626987';
 
 // GrooveWriter class.   The only one in this file.
 
@@ -3684,7 +3684,9 @@ function GrooveWriter() {
   };
 
   function fillInShortenedURLInFullURLPopup(fullURL, cssIdOfTextFieldToFill) {
-    // Ben: the old short-link service (Firebase Dynamic Links) no longer exists; keep the full link
+    // Ben: the old short-link service (Firebase Dynamic Links) no longer exists; show the full link
+    // (also when coming back from the embed code, which would otherwise stay in the field)
+    root.fillInFullURLInFullURLPopup();
     document.getElementById('shortenerCheckbox').checked = false;
     return;
     // eslint-disable-next-line no-unreachable
@@ -5980,7 +5982,7 @@ function GrooveWriter() {
   var MY_KEY = 'benMyGrooves';
   var acct = null; // the account module, loaded only when needed
   function loadAccount() {
-    if (!acct) acct = import('./account.js?v=1795626119');
+    if (!acct) acct = import('./account.js?v=1795626987');
     return acct;
   }
   function localLoad() {
@@ -6431,7 +6433,8 @@ function GrooveWriter() {
     }
   };
 
-  // Drumsheet: "What's new" card for returning users; closed = gone until the next update
+  // Drumsheet: "What's new" card for returning users. Each update is shown once: it counts as
+  // seen as soon as it appears (not only when closed), so it never comes back on the next visit.
   // ---------------------------------------------------------------------
   (function () {
     var SEEN = 'benSeenUpdate';
@@ -6479,13 +6482,17 @@ function GrooveWriter() {
       var ok = card.querySelector('.ben-wn-ok');
       if (ok) ok.onclick = close;
     }
-    import('./updates.js?v=1795626119')
+    import('./updates.js?v=1795626987')
       .then(function (m) {
         root.showWhatsNew = function () {
           show(m.UPDATES, true);
         };
         var fresh = m.UPDATES.filter((u) => u.id > seen()).slice(0, 2);
-        if (fresh.length) setTimeout(() => show(fresh, false), 1500);
+        if (fresh.length)
+          setTimeout(function () {
+            show(fresh, false);
+            markSeen(fresh[0].id); // shown once is enough, even if it is never closed
+          }, 1500);
       })
       .catch(function () {});
   })();
@@ -6528,9 +6535,11 @@ function GrooveWriter() {
       bpm = Math.max(30, Math.min(300, bpm));
       root.myGrooveUtils.setTempo(bpm);
     }
+    var tries = 0;
     function addButton() {
       var field = document.querySelector('#midiPlayer .tempoTextField');
-      if (!field) return setTimeout(addButton, 300);
+      // the player is built right after load; stop looking after ~12 s instead of polling forever
+      if (!field) return ++tries < 40 ? setTimeout(addButton, 300) : undefined;
       if (document.getElementById('benTapTempo')) return;
       var btn = document.createElement('button');
       btn.id = 'benTapTempo';
