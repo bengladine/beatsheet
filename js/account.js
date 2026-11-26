@@ -186,12 +186,32 @@ export async function remove(id) {
   await F.deleteDoc(F.doc(grooveCol(), id));
 }
 
-// delete all grooves, then the account itself (Google asks to confirm if the sign-in is old)
+// editor settings that follow the account: one small record, users/{uid}/settings/prefs
+function prefsDoc() {
+  return F.doc(db, 'users', currentUser.uid, 'settings', 'prefs');
+}
+
+// the saved settings, or null when there are none yet
+export async function getPrefs() {
+  const snap = await F.getDoc(prefsDoc());
+  return snap.exists() ? snap.data() : null;
+}
+
+export async function savePrefs(prefs) {
+  await F.setDoc(prefsDoc(), { snareTap: String(prefs.snareTap), updated: Date.now() });
+}
+
+// delete all grooves and settings, then the account itself (Google asks to confirm if the sign-in is old)
 export async function deleteAccount(askPassword) {
   if (!currentUser) return;
   // confirm who it is first, so grooves are never deleted while the account stays
   await reauth(askPassword);
   const items = await list();
   for (const g of items) await remove(g.id);
+  try {
+    await F.deleteDoc(prefsDoc());
+  } catch (e) {
+    // no settings record (or rules without settings yet): nothing to delete
+  }
   await A.deleteUser(auth.currentUser);
 }

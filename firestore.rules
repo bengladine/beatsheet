@@ -1,5 +1,5 @@
 rules_version = '2';
-// Drumsheet: every signed-in user can only read and write their own grooves.
+// Drumsheet: every signed-in user can only read and write their own grooves and settings.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid}/grooves/{grooveId} {
@@ -9,6 +9,16 @@ service cloud.firestore {
         && request.resource.data.name is string && request.resource.data.name.size() <= 80
         && request.resource.data.q is string && request.resource.data.q.size() <= 20000
         && request.resource.data.saved is int;
+    }
+    // Editor settings that follow the account (for now: what a tapped snare adds).
+    // One small record per user, users/{uid}/settings/prefs, only readable/writable by them.
+    match /users/{uid}/settings/{docId} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && docId == 'prefs'
+        && request.resource.data.keys().hasOnly(['snareTap', 'updated'])
+        && request.resource.data.snareTap in ['normal', 'accent', 'ghost']
+        && request.resource.data.updated is int;
     }
     // Teacher waitlist (teachers.html): anyone may add themselves; nobody can read the list from the web
     match /waitlist/{id} {

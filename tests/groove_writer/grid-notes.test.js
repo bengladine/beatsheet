@@ -206,6 +206,99 @@ describe('Snare "Tap adds" setting (normal / accent / ghost)', () => {
   });
 });
 
+describe('Snare "Tap adds" setting follows the account when signed in', () => {
+  // a stand-in for js/account.js (the real one talks to Firebase)
+  function fakeAccount(saved, { failRead = false, failSave = false } = {}) {
+    const acct = {
+      saved: saved,
+      writes: [],
+      getPrefs: vi.fn(async () => {
+        if (failRead) throw Object.assign(new Error('denied'), { code: 'permission-denied' });
+        return acct.saved;
+      }),
+      savePrefs: vi.fn(async (p) => {
+        if (failSave) throw Object.assign(new Error('denied'), { code: 'permission-denied' });
+        acct.writes.push(p);
+        acct.saved = { snareTap: p.snareTap, updated: 1 };
+      }),
+    };
+    return acct;
+  }
+  function signIn(acct) {
+    const store = gw._benAccountStore;
+    store.online = true;
+    store.mod = acct;
+  }
+  beforeEach(() => localStorage.removeItem('benSnareTap'));
+  afterEach(() => localStorage.removeItem('benSnareTap'));
+
+  it('on sign-in, the account\'s choice wins and is kept in this browser too', async () => {
+    gw.setSnareTapMode('ghost'); // this browser had ghost
+    const acct = fakeAccount({ snareTap: 'accent', updated: 1 });
+    signIn(acct);
+
+    await gw.loadPrefsFromAccount();
+
+    expect(gw.getSnareTapMode()).toBe('accent');
+    expect(localStorage.getItem('benSnareTap')).toBe('accent');
+    expect(acct.savePrefs).not.toHaveBeenCalled(); // nothing to send back
+  });
+
+  it('an account without settings yet gets this browser\'s choice', async () => {
+    gw.setSnareTapMode('ghost');
+    const acct = fakeAccount(null);
+    signIn(acct);
+
+    await gw.loadPrefsFromAccount();
+
+    expect(gw.getSnareTapMode()).toBe('ghost');
+    expect(acct.writes).toEqual([{ snareTap: 'ghost' }]);
+  });
+
+  it('changing the setting while signed in saves it in the account', async () => {
+    const acct = fakeAccount(null);
+    signIn(acct);
+
+    gw.setSnareTapMode('accent');
+
+    expect(acct.writes).toEqual([{ snareTap: 'accent' }]);
+  });
+
+  it('signed out: nothing is sent anywhere', () => {
+    const acct = fakeAccount(null);
+    gw._benAccountStore.mod = acct; // module loaded, but not signed in
+    gw._benAccountStore.online = false;
+
+    gw.setSnareTapMode('accent');
+
+    expect(acct.savePrefs).not.toHaveBeenCalled();
+    expect(gw.getSnareTapMode()).toBe('accent');
+  });
+
+  it('if the account refuses (e.g. database rules not updated yet), the browser setting still works', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const acct = fakeAccount(null, { failRead: true, failSave: true });
+    signIn(acct);
+
+    await expect(gw.loadPrefsFromAccount()).resolves.toBeUndefined();
+    gw.setSnareTapMode('ghost');
+    await Promise.resolve(); // let the refused save settle
+
+    expect(gw.getSnareTapMode()).toBe('ghost');
+    expect(localStorage.getItem('benSnareTap')).toBe('ghost');
+    warn.mockRestore();
+  });
+
+  it('ignores an unknown value stored in the account', async () => {
+    const acct = fakeAccount({ snareTap: 'flam', updated: 1 });
+    signIn(acct);
+
+    await gw.loadPrefsFromAccount();
+
+    expect(gw.getSnareTapMode()).toBe('normal');
+  });
+});
+
 describe('GrooveWriter clickable grid: grooveDataFromClickableUI', () => {
   it('returns all-false arrays sized notesPerMeasure * numberOfMeasures on an empty grid', () => {
     const gd = gw.grooveDataFromClickableUI();
