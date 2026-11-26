@@ -24,8 +24,8 @@
 // GrooveUtils and the drum-notation / MIDI constants come from groove_utils.js.
 // Vendored libraries (Midi, MIDI, Pablo, ShareButton) remain window globals
 // provided by the classic <script> tags loaded before this module.
-import { addInlineMeter, barFraction, chooseBaseMeter } from './meters.js?v=1795699048';
-import { GrooveUtils } from './groove_utils.js?v=1795699048';
+import { addInlineMeter, barFraction, chooseBaseMeter } from './meters.js?v=1795727977';
+import { GrooveUtils } from './groove_utils.js?v=1795727977';
 import {
   constant_ABC_HH_Accent,
   constant_ABC_HH_Close,
@@ -87,10 +87,10 @@ import {
   constant_sticking_left_on_color_rgb,
   constant_sticking_both_on_color_rgb,
   constant_sticking_count_on_color_rgb,
-} from './constants.js?v=1795699048';
-import * as _perm from './permutations.js?v=1795699048';
-import * as _view from './viewHtml.js?v=1795699048';
-import * as _grid from './gridState.js?v=1795699048';
+} from './constants.js?v=1795727977';
+import * as _perm from './permutations.js?v=1795727977';
+import * as _view from './viewHtml.js?v=1795727977';
+import * as _grid from './gridState.js?v=1795727977';
 
 // GrooveWriter class.   The only one in this file.
 
@@ -6033,7 +6033,7 @@ function GrooveWriter() {
   var MY_KEY = 'benMyGrooves';
   var acct = null; // the account module, loaded only when needed
   function loadAccount() {
-    if (!acct) acct = import('./account.js?v=1795699048');
+    if (!acct) acct = import('./account.js?v=1795727977');
     return acct;
   }
   function localLoad() {
@@ -6074,6 +6074,7 @@ function GrooveWriter() {
       localStore(localLoad().filter((x) => x.id !== id));
     },
   };
+  root._benAccountStore = store; // internal: lets tests stand in for the account module
   function currentGrooveQuery() {
     var url = get_FullURLForPage();
     var i = url.indexOf('?');
@@ -6120,6 +6121,7 @@ function GrooveWriter() {
       .then(function (u) {
         store.online = !!u;
         updateStarButton();
+        if (store.online) loadPrefsFromAccount();
       })
       .catch(function () {});
   })();
@@ -6211,6 +6213,7 @@ function GrooveWriter() {
     async function afterSignIn(how) {
       store.online = true;
       updateStarButton();
+      loadPrefsFromAccount();
       window.benCount && window.benCount('sign-in-' + how);
       await offerMoveLocal();
     }
@@ -6473,12 +6476,12 @@ function GrooveWriter() {
 
   root.deleteMyAccount = async function () {
     if (!store.online || !store.mod) return alert('You are not signed in.');
-    if (!confirm('Delete your Drumsheet account and ALL grooves saved in it? This cannot be undone.')) return;
+    if (!confirm('Delete your Drumsheet account and ALL grooves and settings saved in it? This cannot be undone.')) return;
     try {
       await store.mod.deleteAccount(askPassword);
       store.online = false;
       updateStarButton();
-      alert('Your account and all its grooves are deleted.');
+      alert('Your account, all its grooves and its settings are deleted.');
     } catch (e) {
       alert('Could not delete the account: ' + (store.mod.message ? store.mod.message(e) : e.message || e));
     }
@@ -6533,7 +6536,7 @@ function GrooveWriter() {
       var ok = card.querySelector('.ben-wn-ok');
       if (ok) ok.onclick = close;
     }
-    import('./updates.js?v=1795699048')
+    import('./updates.js?v=1795727977')
       .then(function (m) {
         root.showWhatsNew = function () {
           show(m.UPDATES, true);
@@ -6697,7 +6700,8 @@ function GrooveWriter() {
     return class_snare_tap_mode;
   }
   root.getSnareTapMode = snareTapMode;
-  root.setSnareTapMode = function (mode) {
+  // keep: false when the value came from the account (no need to send it back)
+  root.setSnareTapMode = function (mode, keep) {
     if (!isSnareTapMode(mode)) return;
     class_snare_tap_mode = mode;
     try {
@@ -6706,7 +6710,30 @@ function GrooveWriter() {
       /* ignore */
     }
     renderSnareTapRow();
+    if (keep !== false) savePrefsToAccount();
   };
+
+  // Signed in: the setting also lives in the account (users/{uid}/settings/prefs), so it follows
+  // you to other devices. If the account can't take it (e.g. offline, or database rules without
+  // settings), the browser copy above is simply all there is: nothing breaks.
+  function savePrefsToAccount() {
+    if (!store.online || !store.mod || !store.mod.savePrefs) return;
+    store.mod.savePrefs({ snareTap: class_snare_tap_mode }).catch(function (e) {
+      console.warn('Drumsheet: settings not saved in the account', e && e.code ? e.code : e);
+    });
+  }
+  // on sign-in: the account's choice wins; an account without settings gets this browser's
+  async function loadPrefsFromAccount() {
+    if (!store.online || !store.mod || !store.mod.getPrefs) return;
+    try {
+      var prefs = await store.mod.getPrefs();
+      if (prefs && isSnareTapMode(prefs.snareTap)) root.setSnareTapMode(prefs.snareTap, false);
+      else savePrefsToAccount();
+    } catch (e) {
+      console.warn('Drumsheet: settings not read from the account', e && e.code ? e.code : e);
+    }
+  }
+  root.loadPrefsFromAccount = loadPrefsFromAccount;
   function renderSnareTapRow() {
     var menu = document.getElementById('snareLabelContextMenu');
     if (!menu) return;
