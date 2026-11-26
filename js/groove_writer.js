@@ -1448,7 +1448,9 @@ function GrooveWriter() {
           set_hh_state(id, is_hh_on(id) ? 'off' : 'normal', true);
           break;
         case 'snare':
-          set_snare_state(id, is_snare_on(id) ? 'off' : 'accent', true);
+          // Drumsheet: a tapped snare is a normal stroke, like every other drum
+          // (Groove Scribe turned it on accented); accents are in the right-click menu
+          set_snare_state(id, is_snare_on(id) ? 'off' : 'normal', true);
           break;
         case 'tom1':
           set_tom_state(id, 1, is_tom_on(id, 1) ? 'off' : 'normal', true);
@@ -1527,7 +1529,7 @@ function GrooveWriter() {
           set_hh_state(id, action == 'off' ? 'off' : 'normal', true);
           break;
         case 'snare':
-          set_snare_state(id, action == 'off' ? 'off' : 'accent', true);
+          set_snare_state(id, action == 'off' ? 'off' : 'normal', true);
           break;
         case 'kick':
           set_kick_state(id, action == 'off' ? 'off' : 'normal', true);

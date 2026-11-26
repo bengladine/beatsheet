@@ -190,11 +190,11 @@ describe('GrooveWriter clickable grid: noteLeftClick', () => {
     expect(gw.grooveDataFromClickableUI().hh_array[0]).toBe(false);
   });
 
-  it('toggles a snare note on -- note: left-click turns snare on as an ACCENT, not "normal"', () => {
-    // is_snare_on(id) ? "off" : "accent" -- confirmed by reading noteLeftClick's
-    // switch statement; unlike hh/kick/tom (which turn on as "normal").
+  it('toggles a snare note on (normal, like the other drums) then back off', () => {
+    // Groove Scribe turned a clicked snare on as an accent; Drumsheet uses a normal stroke
+    // (accents are still in the right-click menu and the label menu's "all Accented").
     gw.noteLeftClick(ev, 'snare', 1);
-    expect(gw.grooveDataFromClickableUI().snare_array[1]).toBe('!accent!c'); // constant_ABC_SN_Accent
+    expect(gw.grooveDataFromClickableUI().snare_array[1]).toBe('c'); // constant_ABC_SN_Normal
     gw.noteLeftClick(ev, 'snare', 1);
     expect(gw.grooveDataFromClickableUI().snare_array[1]).toBe(false);
   });
@@ -313,11 +313,11 @@ describe('GrooveWriter clickable grid: noteOnMouseEnter', () => {
     expect(gw.grooveDataFromClickableUI().hh_array[5]).toBe(false);
   });
 
-  it('also drives snare (as accent) and kick (as normal)', () => {
+  it('also drives snare and kick (both as normal)', () => {
     gw.noteOnMouseEnter({ ctrlKey: true, altKey: false }, 'snare', 7);
     gw.noteOnMouseEnter({ ctrlKey: true, altKey: false }, 'kick', 8);
     const gd = gw.grooveDataFromClickableUI();
-    expect(gd.snare_array[7]).toBe('!accent!c');
+    expect(gd.snare_array[7]).toBe('c');
     expect(gd.kick_array[8]).toBe('F');
   });
 
