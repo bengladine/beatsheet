@@ -24,8 +24,8 @@
 // GrooveUtils and the drum-notation / MIDI constants come from groove_utils.js.
 // Vendored libraries (Midi, MIDI, Pablo, ShareButton) remain window globals
 // provided by the classic <script> tags loaded before this module.
-import { addInlineMeter, barFraction, chooseBaseMeter } from './meters.js?v=1795628799';
-import { GrooveUtils } from './groove_utils.js?v=1795628799';
+import { addInlineMeter, barFraction, chooseBaseMeter } from './meters.js?v=1795697318';
+import { GrooveUtils } from './groove_utils.js?v=1795697318';
 import {
   constant_ABC_HH_Accent,
   constant_ABC_HH_Close,
@@ -87,10 +87,10 @@ import {
   constant_sticking_left_on_color_rgb,
   constant_sticking_both_on_color_rgb,
   constant_sticking_count_on_color_rgb,
-} from './constants.js?v=1795628799';
-import * as _perm from './permutations.js?v=1795628799';
-import * as _view from './viewHtml.js?v=1795628799';
-import * as _grid from './gridState.js?v=1795628799';
+} from './constants.js?v=1795697318';
+import * as _perm from './permutations.js?v=1795697318';
+import * as _view from './viewHtml.js?v=1795697318';
+import * as _grid from './gridState.js?v=1795697318';
 
 // GrooveWriter class.   The only one in this file.
 
@@ -1448,7 +1448,9 @@ function GrooveWriter() {
           set_hh_state(id, is_hh_on(id) ? 'off' : 'normal', true);
           break;
         case 'snare':
-          set_snare_state(id, is_snare_on(id) ? 'off' : 'accent', true);
+          // Drumsheet: a tapped snare is a normal stroke, like every other drum
+          // (Groove Scribe turned it on accented); accents are in the right-click menu
+          set_snare_state(id, is_snare_on(id) ? 'off' : 'normal', true);
           break;
         case 'tom1':
           set_tom_state(id, 1, is_tom_on(id, 1) ? 'off' : 'normal', true);
@@ -1527,7 +1529,7 @@ function GrooveWriter() {
           set_hh_state(id, action == 'off' ? 'off' : 'normal', true);
           break;
         case 'snare':
-          set_snare_state(id, action == 'off' ? 'off' : 'accent', true);
+          set_snare_state(id, action == 'off' ? 'off' : 'normal', true);
           break;
         case 'kick':
           set_kick_state(id, action == 'off' ? 'off' : 'normal', true);
@@ -6030,7 +6032,7 @@ function GrooveWriter() {
   var MY_KEY = 'benMyGrooves';
   var acct = null; // the account module, loaded only when needed
   function loadAccount() {
-    if (!acct) acct = import('./account.js?v=1795628799');
+    if (!acct) acct = import('./account.js?v=1795697318');
     return acct;
   }
   function localLoad() {
@@ -6530,7 +6532,7 @@ function GrooveWriter() {
       var ok = card.querySelector('.ben-wn-ok');
       if (ok) ok.onclick = close;
     }
-    import('./updates.js?v=1795628799')
+    import('./updates.js?v=1795697318')
       .then(function (m) {
         root.showWhatsNew = function () {
           show(m.UPDATES, true);
