@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { newGrooveWriter, buildGridDOM } from '../helpers/loadGrooveWriter.js';
 
 // groove_writer.js is written assuming classic <script> global-scope sharing
@@ -133,6 +133,77 @@ beforeEach(async () => {
   gw.refresh_ABC = vi.fn();
   gw.updateCurrentURL = vi.fn();
   gw.displayNewSVG = vi.fn();
+});
+
+describe('Snare "Tap adds" setting (normal / accent / ghost)', () => {
+  const ev = { target: {}, preventDefault() {}, stopPropagation() {} };
+  // the page reads the saved choice when it is built (in the file's beforeEach, before this
+  // block's hooks), so clean up after each test, not only before it
+  beforeEach(() => localStorage.removeItem('benSnareTap'));
+  afterEach(() => localStorage.removeItem('benSnareTap'));
+
+  it('defaults to normal', () => {
+    expect(gw.getSnareTapMode()).toBe('normal');
+    gw.noteLeftClick(ev, 'snare', 2);
+    expect(gw.grooveDataFromClickableUI().snare_array[2]).toBe('c');
+  });
+
+  it('a tap adds the chosen stroke, and a second tap still turns the note off', () => {
+    gw.setSnareTapMode('accent');
+    gw.noteLeftClick(ev, 'snare', 2);
+    expect(gw.grooveDataFromClickableUI().snare_array[2]).toBe('!accent!c');
+    gw.noteLeftClick(ev, 'snare', 2);
+    expect(gw.grooveDataFromClickableUI().snare_array[2]).toBe(false);
+
+    gw.setSnareTapMode('ghost');
+    gw.noteLeftClick(ev, 'snare', 3);
+    expect(gw.grooveDataFromClickableUI().snare_array[3]).toBe('!(.!!).!c'); // constant_ABC_SN_Ghost
+  });
+
+  it('Ctrl+hover painting uses the setting too', () => {
+    gw.setSnareTapMode('accent');
+    gw.noteOnMouseEnter({ ctrlKey: true, altKey: false }, 'snare', 6);
+    expect(gw.grooveDataFromClickableUI().snare_array[6]).toBe('!accent!c');
+  });
+
+  it('notes already in the groove keep their stroke when the setting changes', () => {
+    gw.noteLeftClick(ev, 'snare', 4); // normal
+    gw.setSnareTapMode('accent');
+    expect(gw.grooveDataFromClickableUI().snare_array[4]).toBe('c');
+  });
+
+  it('is remembered in this browser (a new page starts with the saved choice)', async () => {
+    gw.setSnareTapMode('ghost');
+    expect(localStorage.getItem('benSnareTap')).toBe('ghost');
+    const fresh = await newGrooveWriter();
+    expect(fresh.getSnareTapMode()).toBe('ghost');
+  });
+
+  it('ignores an unknown value (from storage or a call) and keeps normal', async () => {
+    gw.setSnareTapMode('flam');
+    expect(gw.getSnareTapMode()).toBe('normal');
+    localStorage.setItem('benSnareTap', 'bogus');
+    const fresh = await newGrooveWriter();
+    expect(fresh.getSnareTapMode()).toBe('normal');
+  });
+
+  it('the snare row menu shows "Tap adds" with the current choice, and picking one saves it and closes the menu', () => {
+    gw.setSnareTapMode('accent');
+    gw.noteLabelClick({ clientX: 300, clientY: 200, preventDefault() {}, stopPropagation() {} }, 'snare', 1);
+    const menu = document.getElementById('snareLabelContextMenu');
+    const row = menu.firstElementChild;
+    expect(row.classList.contains('ben-tap-row')).toBe(true);
+    expect(row.querySelector('button.on').getAttribute('data-mode')).toBe('accent');
+
+    row.querySelector('button[data-mode="ghost"]').click();
+
+    expect(gw.getSnareTapMode()).toBe('ghost');
+    expect(row.querySelector('button.on').getAttribute('data-mode')).toBe('ghost');
+    expect(menu.style.display).toBe('none');
+    expect(menu.querySelectorAll('.ben-tap-row')).toHaveLength(1); // opening again adds no second row
+    gw.noteLabelClick({ clientX: 300, clientY: 200, preventDefault() {}, stopPropagation() {} }, 'snare', 1);
+    expect(menu.querySelectorAll('.ben-tap-row')).toHaveLength(1);
+  });
 });
 
 describe('GrooveWriter clickable grid: grooveDataFromClickableUI', () => {

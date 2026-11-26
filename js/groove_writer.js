@@ -1215,6 +1215,7 @@ function GrooveWriter() {
         break;
       case 'snare':
         contextMenu = document.getElementById('snareLabelContextMenu');
+        renderSnareTapRow(); // the "Tap adds" choice at the top shows the current setting
         break;
       case 'kick':
         contextMenu = document.getElementById('kickLabelContextMenu');
@@ -1448,9 +1449,9 @@ function GrooveWriter() {
           set_hh_state(id, is_hh_on(id) ? 'off' : 'normal', true);
           break;
         case 'snare':
-          // Drumsheet: a tapped snare is a normal stroke, like every other drum
-          // (Groove Scribe turned it on accented); accents are in the right-click menu
-          set_snare_state(id, is_snare_on(id) ? 'off' : 'normal', true);
+          // Drumsheet: a tapped snare is what the "Tap adds" setting in the snare menu says
+          // (normal by default; Groove Scribe always used an accent)
+          set_snare_state(id, is_snare_on(id) ? 'off' : snareTapMode(), true);
           break;
         case 'tom1':
           set_tom_state(id, 1, is_tom_on(id, 1) ? 'off' : 'normal', true);
@@ -1529,7 +1530,7 @@ function GrooveWriter() {
           set_hh_state(id, action == 'off' ? 'off' : 'normal', true);
           break;
         case 'snare':
-          set_snare_state(id, action == 'off' ? 'off' : 'normal', true);
+          set_snare_state(id, action == 'off' ? 'off' : snareTapMode(), true);
           break;
         case 'kick':
           set_kick_state(id, action == 'off' ? 'off' : 'normal', true);
@@ -6672,6 +6673,70 @@ function GrooveWriter() {
       true
     );
   })();
+
+  // ---------------------------------------------------------------------
+  // Drumsheet: what a tapped snare cell adds (normal / accent / ghost). Chosen at the top of the
+  // snare row's menu, remembered in this browser. Notes already in a groove never change.
+  // ---------------------------------------------------------------------
+  var SNARE_TAP_MODES = [
+    ['normal', 'Normal'],
+    ['accent', 'Accent'],
+    ['ghost', 'Ghost'],
+  ];
+  function isSnareTapMode(v) {
+    return SNARE_TAP_MODES.some((m) => m[0] === v);
+  }
+  var class_snare_tap_mode = 'normal';
+  try {
+    var savedTap = localStorage.getItem('benSnareTap');
+    if (isSnareTapMode(savedTap)) class_snare_tap_mode = savedTap;
+  } catch (e) {
+    /* no browser storage (e.g. private mode): normal, and a choice lasts for this visit */
+  }
+  function snareTapMode() {
+    return class_snare_tap_mode;
+  }
+  root.getSnareTapMode = snareTapMode;
+  root.setSnareTapMode = function (mode) {
+    if (!isSnareTapMode(mode)) return;
+    class_snare_tap_mode = mode;
+    try {
+      localStorage.setItem('benSnareTap', mode);
+    } catch (e) {
+      /* ignore */
+    }
+    renderSnareTapRow();
+  };
+  function renderSnareTapRow() {
+    var menu = document.getElementById('snareLabelContextMenu');
+    if (!menu) return;
+    var row = menu.querySelector('.ben-tap-row');
+    if (!row) {
+      row = document.createElement('li');
+      row.className = 'ben-tap-row';
+      row.innerHTML =
+        '<span class="ben-tap-label">Tap adds</span><span class="ben-tap-opts">' +
+        SNARE_TAP_MODES.map((m) => '<button type="button" data-mode="' + m[0] + '">' + m[1] + '</button>').join('') +
+        '</span>';
+      // the row itself is not a menu action: clicks between the buttons do nothing
+      row.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var b = e.target.closest && e.target.closest('button[data-mode]');
+        if (!b) return;
+        root.setSnareTapMode(b.getAttribute('data-mode'));
+        root.myGrooveUtils.hideContextMenu(menu);
+      });
+      menu.insertBefore(row, menu.firstChild);
+    }
+    var mode = snareTapMode();
+    row.querySelectorAll('button[data-mode]').forEach(function (b) {
+      var on = b.getAttribute('data-mode') === mode;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    row.title = 'What tapping an empty snare cell adds. Notes already in the groove stay as they are.';
+  }
+  renderSnareTapRow();
 
   // Ben: keep popup menus inside the screen (phones)
   var originalShowContextMenu = root.myGrooveUtils.showContextMenu;

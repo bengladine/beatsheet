@@ -540,6 +540,21 @@ html.ben-popped #benSheetLoop { display: none; }
 .noteContextMenu > ul.list li:not(.ben-convert) + li.ben-convert { border-top: 1px solid var(--ben-line); border-radius: 0 0 8px 8px; margin-top: 4px; padding-top: 9px; }
 .noteContextMenu > ul.list li.ben-convert b { color: var(--ben-ink); font-weight: 600; }
 .noteContextMenu > ul.list li.ben-convert:hover { background: var(--ben-accent-soft); }
+/* snare menu: "Tap adds  Normal | Accent | Ghost" (a setting, not an action) */
+.noteContextMenu > ul.list li.ben-tap-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: default;
+  border-bottom: 1px solid var(--ben-line); border-radius: 8px 8px 0 0; margin-bottom: 4px; padding-bottom: 9px;
+}
+.noteContextMenu > ul.list li.ben-tap-row:hover { background: none; }
+.ben-tap-row .ben-tap-label { color: var(--ben-muted); font-size: 12px; white-space: nowrap; }
+.ben-tap-row .ben-tap-opts { display: inline-flex; border: 1px solid var(--ben-line); border-radius: 8px; overflow: hidden; }
+.ben-tap-row .ben-tap-opts button {
+  border: none; background: transparent; color: var(--ben-ink); font: inherit; font-size: 12px;
+  padding: 4px 9px; cursor: pointer;
+}
+.ben-tap-row .ben-tap-opts button + button { border-left: 1px solid var(--ben-line); }
+.ben-tap-row .ben-tap-opts button:hover { background: var(--ben-accent-soft); }
+.ben-tap-row .ben-tap-opts button.on { background: var(--ben-accent); color: #fff; }
 
 /* ---- grid for all bars (replaces the old left bar) ---- */
 #benGridAll { display: inline-flex; align-items: center; gap: 6px; margin-left: 14px; padding-left: 14px; border-left: 1px solid #334155; }

@@ -3,6 +3,13 @@
 // a returning visitor gets every entry newer than the last one they saw, by date.
 export const UPDATES = [
   {
+    id: 5,
+    date: '26 Nov 2026',
+    items: [
+      '<b>Snare taps are normal strokes now</b> (they used to be accented). Prefer accents or ghost notes? Tap the <b>Snare</b> row label and choose under <b>Tap adds</b>: Normal, Accent or Ghost. Your choice is remembered in this browser.',
+    ],
+  },
+  {
     id: 4,
     date: '25 Nov 2026',
     items: [
