@@ -24,8 +24,8 @@
 // GrooveUtils and the drum-notation / MIDI constants come from groove_utils.js.
 // Vendored libraries (Midi, MIDI, Pablo, ShareButton) remain window globals
 // provided by the classic <script> tags loaded before this module.
-import { addInlineMeter, barFraction, chooseBaseMeter } from './meters.js?v=1795727977';
-import { GrooveUtils } from './groove_utils.js?v=1795727977';
+import { addInlineMeter, barFraction, chooseBaseMeter } from './meters.js?v=1795791453';
+import { GrooveUtils } from './groove_utils.js?v=1795791453';
 import {
   constant_ABC_HH_Accent,
   constant_ABC_HH_Close,
@@ -87,10 +87,10 @@ import {
   constant_sticking_left_on_color_rgb,
   constant_sticking_both_on_color_rgb,
   constant_sticking_count_on_color_rgb,
-} from './constants.js?v=1795727977';
-import * as _perm from './permutations.js?v=1795727977';
-import * as _view from './viewHtml.js?v=1795727977';
-import * as _grid from './gridState.js?v=1795727977';
+} from './constants.js?v=1795791453';
+import * as _perm from './permutations.js?v=1795791453';
+import * as _view from './viewHtml.js?v=1795791453';
+import * as _grid from './gridState.js?v=1795791453';
 
 // GrooveWriter class.   The only one in this file.
 
@@ -6033,7 +6033,7 @@ function GrooveWriter() {
   var MY_KEY = 'benMyGrooves';
   var acct = null; // the account module, loaded only when needed
   function loadAccount() {
-    if (!acct) acct = import('./account.js?v=1795727977');
+    if (!acct) acct = import('./account.js?v=1795791453');
     return acct;
   }
   function localLoad() {
@@ -6536,7 +6536,7 @@ function GrooveWriter() {
       var ok = card.querySelector('.ben-wn-ok');
       if (ok) ok.onclick = close;
     }
-    import('./updates.js?v=1795727977')
+    import('./updates.js?v=1795791453')
       .then(function (m) {
         root.showWhatsNew = function () {
           show(m.UPDATES, true);
