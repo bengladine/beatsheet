@@ -10,6 +10,7 @@
 import { GrooveWriter } from './groove_writer.js';
 import { GrooveUtils } from './groove_utils.js';
 import { grooves } from './grooves.js';
+import './hostBridge.js';
 
 // Inline HTML handlers (onclick="myGrooveWriter.…") and other consumers still
 // reference these as globals, so expose them on window.
